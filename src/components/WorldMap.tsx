@@ -38,6 +38,14 @@ interface WorldMapProps {
      */
     mapStyle?: string;
     /**
+     * Array of selected country ISO2 codes to highlight in yellow.
+     */
+    selectedCountries?: string[];
+    /**
+     * Color for selected countries fill.
+     */
+    selectedCountryColor?: string;
+    /**
      * Callback when map is loaded.
      */
     onMapLoad?: (map: mapboxgl.Map) => void;
@@ -50,7 +58,14 @@ interface WorldMapProps {
 const defaultProps: Required<
     Pick<
         WorldMapProps,
-        "width" | "height" | "initialZoom" | "initialCenter" | "borderColor" | "borderWidth" | "mapStyle"
+        | "width"
+        | "height"
+        | "initialZoom"
+        | "initialCenter"
+        | "borderColor"
+        | "borderWidth"
+        | "mapStyle"
+        | "selectedCountryColor"
     >
 > = {
     width: "100%",
@@ -60,6 +75,7 @@ const defaultProps: Required<
     borderColor: "#ffffff",
     borderWidth: 2,
     mapStyle: "mapbox://styles/mapbox/satellite-v9",
+    selectedCountryColor: "#fbbf24", // Tailwind yellow-400
 };
 
 /**
@@ -75,6 +91,8 @@ export const WorldMap: React.FC<WorldMapProps> = ({
     borderColor = defaultProps.borderColor,
     borderWidth = defaultProps.borderWidth,
     mapStyle = defaultProps.mapStyle,
+    selectedCountries = [],
+    selectedCountryColor = defaultProps.selectedCountryColor,
     onMapLoad,
     onMapError,
 }) => {
@@ -118,7 +136,6 @@ export const WorldMap: React.FC<WorldMapProps> = ({
             // Handle map load event
             map.current.on("load", () => {
                 if (!map.current) return;
-
                 try {
                     // Add country boundaries source
                     map.current.addSource("country-boundaries", {
@@ -154,6 +171,26 @@ export const WorldMap: React.FC<WorldMapProps> = ({
                                 "fill-color": "transparent",
                                 "fill-opacity": 0.1,
                                 "fill-outline-color": borderColor,
+                            },
+                        },
+                        "country-borders",
+                    );
+
+                    // Add selected countries highlight layer
+                    map.current.addLayer(
+                        {
+                            id: "selected-countries",
+                            type: "fill",
+                            source: "country-boundaries",
+                            "source-layer": "country_boundaries",
+                            paint: {
+                                "fill-color": selectedCountryColor,
+                                "fill-opacity": [
+                                    "case",
+                                    ["in", ["get", "iso_3166_1"], ["literal", selectedCountries]],
+                                    0.7,
+                                    0,
+                                ],
                             },
                         },
                         "country-borders",
@@ -196,7 +233,35 @@ export const WorldMap: React.FC<WorldMapProps> = ({
                 map.current = null;
             }
         };
-    }, [accessToken, mapStyle, initialCenter, initialZoom, borderColor, borderWidth, onMapLoad, onMapError]);
+    }, [
+        accessToken,
+        mapStyle,
+        initialCenter,
+        initialZoom,
+        borderColor,
+        borderWidth,
+        selectedCountries,
+        selectedCountryColor,
+        onMapLoad,
+        onMapError,
+    ]);
+
+    // Update selected countries when they change
+    useEffect(() => {
+        if (map.current?.isStyleLoaded() && map.current.getLayer("selected-countries")) {
+            try {
+                map.current.setPaintProperty("selected-countries", "fill-opacity", [
+                    "case",
+                    ["in", ["get", "iso_3166_1"], ["literal", selectedCountries]],
+                    0.7,
+                    0,
+                ]);
+            } catch (error) {
+                console.warn("Failed to update selected countries:", error);
+            }
+        }
+    }, [selectedCountries]);
+
     // Handle container size changes
     useEffect(() => {
         if (map.current) {
