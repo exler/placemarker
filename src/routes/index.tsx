@@ -1,3 +1,4 @@
+import AuthButton from "@/components/AuthButton";
 import CountrySelector from "@/components/CountrySelector";
 import WorldMap from "@/components/WorldMap";
 import type { Country } from "@/lib/countries";
@@ -47,6 +48,9 @@ function Index() {
     };
     return (
         <div className="relative w-full h-screen overflow-hidden bg-gradient-to-br from-blue-900 to-blue-700 dark:from-gray-900 dark:to-gray-800">
+            {/* Authentication Button - Top Left */}
+            <AuthButton />
+
             {/* Country Selector Widget - Top Right */}
             <div className="absolute top-4 right-4 z-10">
                 <CountrySelector onCountrySelect={handleCountrySelect} onCountryDeselect={handleCountryDeselect} />
