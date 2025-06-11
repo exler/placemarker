@@ -57,7 +57,21 @@ class PocketbaseService {
     }
 
     private initializeAuth() {
-        // PocketBase automatically handles auth state persistence
+        // First, try to restore session-only auth if it exists
+        const sessionAuth = sessionStorage.getItem("pocketbase_auth_session");
+        if (sessionAuth && !pb.authStore.isValid) {
+            try {
+                const authData = JSON.parse(sessionAuth);
+                pb.authStore.save(authData.token, authData.model);
+                console.log("Session-only auth restored:", pb.authStore.model?.email);
+                return;
+            } catch (error) {
+                console.error("Failed to restore session auth:", error);
+                sessionStorage.removeItem("pocketbase_auth_session");
+            }
+        }
+        
+        // PocketBase automatically handles auth state persistence from localStorage
         // This will restore the auth state if a valid token exists
         if (pb.authStore.isValid) {
             console.log("User already authenticated:", pb.authStore.model?.email);
@@ -76,6 +90,7 @@ class PocketbaseService {
                 console.log("Session will persist");
             } else {
                 // For session-only auth, we'll clear the auth when the page unloads
+                // but let PocketBase handle the immediate auth state normally
                 this.setupSessionOnlyAuth();
             }
 
@@ -117,28 +132,24 @@ class PocketbaseService {
     }
 
     private setupSessionOnlyAuth() {
-        // Store the auth data in sessionStorage instead of localStorage
+        // For session-only auth, we want to persist until the browser/tab is actually closed
+        // We'll override PocketBase's default localStorage behavior to use sessionStorage instead
+        
+        // Move the auth data from localStorage to sessionStorage
         const authData = {
             token: pb.authStore.token,
             model: pb.authStore.model,
         };
-
-        // Clear localStorage auth
+        
+        // Clear the persistent localStorage entry
         localStorage.removeItem("pocketbase_auth");
-
-        // Store in sessionStorage
+        
+        // Store in sessionStorage (persists until tab/browser closes)
         sessionStorage.setItem("pocketbase_auth_session", JSON.stringify(authData));
-
-        // Set up cleanup on page unload
-        const handleBeforeUnload = () => {
-            sessionStorage.removeItem("pocketbase_auth_session");
-            pb.authStore.clear();
-        };
-
-        window.addEventListener("beforeunload", handleBeforeUnload);
-
-        // Also set up periodic check to restore session auth if needed
-        const checkSessionAuth = () => {
+        
+        // Set up restoration of sessionStorage auth on page reload
+        const handlePageLoad = () => {
+            // Only restore if we don't already have valid auth
             if (!pb.authStore.isValid) {
                 const sessionAuth = sessionStorage.getItem("pocketbase_auth_session");
                 if (sessionAuth) {
@@ -152,15 +163,33 @@ class PocketbaseService {
                 }
             }
         };
-
-        // Check every 30 seconds
-        const intervalId = setInterval(checkSessionAuth, 30000);
-
-        // Cleanup interval when auth is cleared
-        pb.authStore.onChange(() => {
-            if (!pb.authStore.isValid) {
-                clearInterval(intervalId);
-                window.removeEventListener("beforeunload", handleBeforeUnload);
+        
+        // Restore session auth immediately if needed
+        handlePageLoad();
+        
+        // Also listen for storage events to handle auth state across tabs
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === "pocketbase_auth_session" && e.newValue === null) {
+                // Session was cleared in another tab, clear here too
+                pb.authStore.clear();
+            }
+        };
+        
+        window.addEventListener("storage", handleStorageChange);
+        
+        // Clean up sessionStorage when auth is cleared
+        const unsubscribe = pb.authStore.onChange((token) => {
+            if (!token) {
+                sessionStorage.removeItem("pocketbase_auth_session");
+                window.removeEventListener("storage", handleStorageChange);
+                unsubscribe();
+            } else {
+                // Update sessionStorage when auth changes
+                const authData = {
+                    token: pb.authStore.token,
+                    model: pb.authStore.model,
+                };
+                sessionStorage.setItem("pocketbase_auth_session", JSON.stringify(authData));
             }
         });
     } // Country selection methods

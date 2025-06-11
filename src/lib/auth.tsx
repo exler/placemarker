@@ -47,8 +47,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setIsLoading(false);
         };
 
-        initializeAuth(); // Listen for auth changes
+        initializeAuth(); 
+        
+        // Listen for auth changes
         const unsubscribe = pocketbaseService.onChange((token, model) => {
+            setIsLoading(false); // Ensure loading is cleared on any auth change
+            
             if (token && model) {
                 // Type guard to ensure model has the expected properties
                 const isValidModel = (obj: unknown): obj is PocketBaseAuthModel => {
