@@ -17,7 +17,7 @@ interface AuthContextType {
     user: AuthUser | null;
     isAuthenticated: boolean;
     isLoading: boolean;
-    login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
+    login: (email: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
 }
 
@@ -79,11 +79,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         return unsubscribe;
     }, []);
-    const login = async (email: string, password: string, rememberMe = false) => {
+
+    const login = async (email: string, password: string) => {
         const authUser = await pocketbaseService.login({
             email,
             password,
-            rememberMe,
         });
         setUser(authUser);
     };

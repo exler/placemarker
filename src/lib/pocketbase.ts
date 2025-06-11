@@ -38,7 +38,6 @@ export interface AuthUser {
 export interface LoginCredentials {
     email: string;
     password: string;
-    rememberMe?: boolean;
 }
 
 // Types for Pocketbase country selection record
@@ -83,17 +82,6 @@ class PocketbaseService {
         try {
             const authData = await pb.collection("users").authWithPassword(credentials.email, credentials.password);
 
-            // Set auth persistence based on rememberMe
-            if (credentials.rememberMe) {
-                // For persistent sessions (30 days), we don't need to do anything special
-                // as PocketBase handles this automatically with localStorage
-                console.log("Session will persist");
-            } else {
-                // For session-only auth, we'll clear the auth when the page unloads
-                // but let PocketBase handle the immediate auth state normally
-                this.setupSessionOnlyAuth();
-            }
-
             return {
                 id: authData.record.id,
                 email: authData.record.email,
@@ -131,68 +119,6 @@ class PocketbaseService {
         return pb.authStore.isValid;
     }
 
-    private setupSessionOnlyAuth() {
-        // For session-only auth, we want to persist until the browser/tab is actually closed
-        // We'll override PocketBase's default localStorage behavior to use sessionStorage instead
-        
-        // Move the auth data from localStorage to sessionStorage
-        const authData = {
-            token: pb.authStore.token,
-            model: pb.authStore.model,
-        };
-        
-        // Clear the persistent localStorage entry
-        localStorage.removeItem("pocketbase_auth");
-        
-        // Store in sessionStorage (persists until tab/browser closes)
-        sessionStorage.setItem("pocketbase_auth_session", JSON.stringify(authData));
-        
-        // Set up restoration of sessionStorage auth on page reload
-        const handlePageLoad = () => {
-            // Only restore if we don't already have valid auth
-            if (!pb.authStore.isValid) {
-                const sessionAuth = sessionStorage.getItem("pocketbase_auth_session");
-                if (sessionAuth) {
-                    try {
-                        const authData = JSON.parse(sessionAuth);
-                        pb.authStore.save(authData.token, authData.model);
-                    } catch (error) {
-                        console.error("Failed to restore session auth:", error);
-                        sessionStorage.removeItem("pocketbase_auth_session");
-                    }
-                }
-            }
-        };
-        
-        // Restore session auth immediately if needed
-        handlePageLoad();
-        
-        // Also listen for storage events to handle auth state across tabs
-        const handleStorageChange = (e: StorageEvent) => {
-            if (e.key === "pocketbase_auth_session" && e.newValue === null) {
-                // Session was cleared in another tab, clear here too
-                pb.authStore.clear();
-            }
-        };
-        
-        window.addEventListener("storage", handleStorageChange);
-        
-        // Clean up sessionStorage when auth is cleared
-        const unsubscribe = pb.authStore.onChange((token) => {
-            if (!token) {
-                sessionStorage.removeItem("pocketbase_auth_session");
-                window.removeEventListener("storage", handleStorageChange);
-                unsubscribe();
-            } else {
-                // Update sessionStorage when auth changes
-                const authData = {
-                    token: pb.authStore.token,
-                    model: pb.authStore.model,
-                };
-                sessionStorage.setItem("pocketbase_auth_session", JSON.stringify(authData));
-            }
-        });
-    } // Country selection methods
     async saveCountrySelection(country: Country): Promise<void> {
         if (!this.isAuthenticated()) {
             throw new Error("User must be authenticated to save country selections");
@@ -224,6 +150,7 @@ class PocketbaseService {
             throw new Error("Failed to save country selection");
         }
     }
+
     async removeCountrySelection(countryIso3: string): Promise<void> {
         if (!this.isAuthenticated()) {
             throw new Error("User must be authenticated to remove country selections");
@@ -249,6 +176,7 @@ class PocketbaseService {
             throw new Error("Failed to remove country selection");
         }
     }
+
     async getUserCountrySelections(): Promise<Country[]> {
         if (!this.isAuthenticated()) {
             return [];
@@ -306,7 +234,8 @@ class PocketbaseService {
             console.error("Failed to clear country selections:", error);
             throw new Error("Failed to clear country selections");
         }
-    } // Auth state change listener
+    }
+
     onChange(callback: (token: string, model: unknown) => void) {
         return pb.authStore.onChange(callback);
     }

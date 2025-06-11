@@ -11,7 +11,6 @@ interface AuthModalProps {
 interface LoginFormData {
     email: string;
     password: string;
-    rememberMe: boolean;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
@@ -22,14 +21,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         defaultValues: {
             email: "",
             password: "",
-            rememberMe: false,
         } as LoginFormData,
         onSubmit: async ({ value }) => {
             setIsLoading(true);
             setError(null);
 
             try {
-                await login(value.email, value.password, value.rememberMe);
+                await login(value.email, value.password);
                 onClose();
                 form.reset();
             } catch (err) {
@@ -174,25 +172,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                                 {field.state.meta.errors && (
                                     <p className="mt-1 text-sm text-red-600">{field.state.meta.errors[0]}</p>
                                 )}
-                            </div>
-                        )}
-                    </form.Field>
-
-                    {/* Remember Me */}
-                    <form.Field name="rememberMe">
-                        {(field) => (
-                            <div className="flex items-center">
-                                <input
-                                    id="rememberMe"
-                                    type="checkbox"
-                                    checked={field.state.value}
-                                    onChange={(e) => field.handleChange(e.target.checked)}
-                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                    disabled={isLoading}
-                                />
-                                <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-700">
-                                    Remember me for 30 days
-                                </label>
                             </div>
                         )}
                     </form.Field>
