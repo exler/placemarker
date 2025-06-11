@@ -74,7 +74,7 @@ const defaultProps: Required<
     initialCenter: [0, 20],
     borderColor: "#ffffff",
     borderWidth: 2,
-    mapStyle: "mapbox://styles/mapbox/satellite-v9",
+    mapStyle: "mapbox://styles/mapbox/satellite-dark-v11",
     selectedCountryColor: "#fbbf24", // Tailwind yellow-400
 };
 
@@ -137,6 +137,22 @@ export const WorldMap: React.FC<WorldMapProps> = ({
             map.current.on("load", () => {
                 if (!map.current) return;
                 try {
+                    // Remove all text layers to hide country names, city names, and labels
+                    const style = map.current.getStyle();
+                    if (style?.layers) {
+                        const textLayers = style.layers.filter(
+                            (layer) => layer.type === "symbol" && 
+                            layer.layout && 
+                            ("text-field" in layer.layout || "icon-image" in layer.layout)
+                        );
+                        
+                        textLayers.forEach((layer) => {
+                            if (map.current?.getLayer(layer.id)) {
+                                map.current.removeLayer(layer.id);
+                            }
+                        });
+                    }
+
                     // Add country boundaries source
                     map.current.addSource("country-boundaries", {
                         type: "vector",
@@ -240,6 +256,7 @@ export const WorldMap: React.FC<WorldMapProps> = ({
         initialZoom,
         borderColor,
         borderWidth,
+        selectedCountries,
         selectedCountryColor,
         onMapLoad,
         onMapError,

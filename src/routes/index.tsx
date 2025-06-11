@@ -70,7 +70,7 @@ function Index() {
                     initialCenter={initialCenter}
                     borderColor="#ffffff"
                     borderWidth={1.5}
-                    mapStyle="mapbox://styles/mapbox/satellite-v9"
+                    mapStyle="mapbox://styles/mapbox/dark-v11"
                     selectedCountries={selectedCountries}
                     selectedCountryColor="#fbbf24"
                     onMapLoad={handleMapLoad}
