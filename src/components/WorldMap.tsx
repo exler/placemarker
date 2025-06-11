@@ -240,7 +240,6 @@ export const WorldMap: React.FC<WorldMapProps> = ({
         initialZoom,
         borderColor,
         borderWidth,
-        selectedCountries,
         selectedCountryColor,
         onMapLoad,
         onMapError,

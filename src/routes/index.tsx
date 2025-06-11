@@ -4,7 +4,7 @@ import WorldMap from "@/components/WorldMap";
 import type { Country } from "@/lib/countries";
 import { countryStorage } from "@/lib/countryStorage";
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export const Route = createFileRoute("/")({
     component: Index,
@@ -29,23 +29,27 @@ function Index() {
         loadSelectedCountries();
     }, []);
 
-    const handleMapLoad = (map: mapboxgl.Map) => {
+    const handleMapLoad = useCallback((map: any) => {
         console.log("World map loaded successfully", map);
-    };
+    }, []);
 
-    const handleMapError = (error: Error) => {
+    const handleMapError = useCallback((error: Error) => {
         console.error("World map error:", error);
-    };
+    }, []);
 
-    const handleCountrySelect = (country: Country) => {
+    const handleCountrySelect = useCallback((country: Country) => {
         setSelectedCountries((prev) => [...prev, country.iso2]);
         console.log("Country selected:", country.name);
-    };
+    }, []);
 
-    const handleCountryDeselect = (countryId: string) => {
+    const handleCountryDeselect = useCallback((countryId: string) => {
         setSelectedCountries((prev) => prev.filter((id) => id !== countryId));
         console.log("Country deselected:", countryId);
-    };
+    }, []);
+
+    // Arrays are compared by reference, so [0, 20] will create a new array each time the component renders
+    // causing the useEffect in WorldMap to trigger and cause a blinking effect.
+    const initialCenter = useMemo<[number, number]>(() => [0, 20], []);
     return (
         <div className="relative w-full h-screen overflow-hidden bg-gradient-to-br from-blue-900 to-blue-700 dark:from-gray-900 dark:to-gray-800">
             {/* Authentication Button - Top Left */}
@@ -63,7 +67,7 @@ function Index() {
                     width="100%"
                     height="100%"
                     initialZoom={2}
-                    initialCenter={[0, 20]}
+                    initialCenter={initialCenter}
                     borderColor="#ffffff"
                     borderWidth={1.5}
                     mapStyle="mapbox://styles/mapbox/satellite-v9"
