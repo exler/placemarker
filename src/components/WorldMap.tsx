@@ -98,6 +98,7 @@ export const WorldMap: React.FC<WorldMapProps> = ({
 }) => {
     const mapContainer = useRef<HTMLDivElement>(null);
     const map = useRef<mapboxgl.Map | null>(null);
+    const initialSelectedCountries = useRef<string[]>(selectedCountries);
 
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -182,8 +183,8 @@ export const WorldMap: React.FC<WorldMapProps> = ({
                             type: "fill",
                             source: "country-boundaries",
                             "source-layer": "country_boundaries",
-                            filter: selectedCountries.length > 0 
-                                ? ["in", ["get", "iso_3166_1"], ["literal", selectedCountries]]
+                            filter: initialSelectedCountries.current.length > 0 
+                                ? ["in", ["get", "iso_3166_1"], ["literal", initialSelectedCountries.current]]
                                 : ["==", ["get", "iso_3166_1"], ""],
                             paint: {
                                 "fill-color": selectedCountryColor,
@@ -253,7 +254,6 @@ export const WorldMap: React.FC<WorldMapProps> = ({
         initialZoom,
         borderColor,
         borderWidth,
-        selectedCountries,
         selectedCountryColor,
         onMapLoad,
         onMapError,
@@ -261,6 +261,9 @@ export const WorldMap: React.FC<WorldMapProps> = ({
 
     // Update selected countries when they change
     useEffect(() => {
+        // Update the ref to keep track of the latest selected countries
+        initialSelectedCountries.current = selectedCountries;
+        
         if (map.current?.isStyleLoaded() && map.current.getLayer("selected-countries")) {
             try {
                 console.log("Updating selected countries:", selectedCountries);
