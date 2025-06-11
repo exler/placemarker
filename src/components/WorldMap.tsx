@@ -159,7 +159,40 @@ export const WorldMap: React.FC<WorldMapProps> = ({
                         url: "mapbox://mapbox.country-boundaries-v1",
                     });
 
-                    // Add country borders layer
+                    // Find and remove any existing country fill layers from the base style that might interfere
+                    const currentStyle = map.current.getStyle();
+                    if (currentStyle?.layers) {
+                        const countryFillLayers = currentStyle.layers.filter(
+                            (layer) => layer.type === "fill" && 
+                            (layer.id.includes("country") || layer.id.includes("admin") || layer.id.includes("land"))
+                        );
+                        
+                        countryFillLayers.forEach((layer) => {
+                            if (map.current?.getLayer(layer.id)) {
+                                console.log("Removing interfering layer:", layer.id);
+                                map.current.removeLayer(layer.id);
+                            }
+                        });
+                    }
+
+                    // Add selected countries highlight layer first (so it renders behind borders)
+                    map.current.addLayer(
+                        {
+                            id: "selected-countries",
+                            type: "fill",
+                            source: "country-boundaries",
+                            "source-layer": "country_boundaries",
+                            filter: selectedCountries.length > 0 
+                                ? ["in", ["get", "iso_3166_1"], ["literal", selectedCountries]]
+                                : ["==", ["get", "iso_3166_1"], ""],
+                            paint: {
+                                "fill-color": selectedCountryColor,
+                                "fill-opacity": 1.0, // Use full opacity to prevent blending
+                            },
+                        }
+                    );
+
+                    // Add country borders layer on top (so it renders above the fills)
                     map.current.addLayer({
                         id: "country-borders",
                         type: "line",
@@ -175,42 +208,6 @@ export const WorldMap: React.FC<WorldMapProps> = ({
                             "line-opacity": 0.8,
                         },
                     });
-
-                    // Add subtle country fill for better visibility
-                    map.current.addLayer(
-                        {
-                            id: "country-fills",
-                            type: "fill",
-                            source: "country-boundaries",
-                            "source-layer": "country_boundaries",
-                            paint: {
-                                "fill-color": "transparent",
-                                "fill-opacity": 0.1,
-                                "fill-outline-color": borderColor,
-                            },
-                        },
-                        "country-borders",
-                    );
-
-                    // Add selected countries highlight layer
-                    map.current.addLayer(
-                        {
-                            id: "selected-countries",
-                            type: "fill",
-                            source: "country-boundaries",
-                            "source-layer": "country_boundaries",
-                            paint: {
-                                "fill-color": selectedCountryColor,
-                                "fill-opacity": [
-                                    "case",
-                                    ["in", ["get", "iso_3166_1"], ["literal", selectedCountries]],
-                                    0.7,
-                                    0,
-                                ],
-                            },
-                        },
-                        "country-borders",
-                    );
 
                     setIsLoading(false);
                     setError(null);
@@ -266,12 +263,15 @@ export const WorldMap: React.FC<WorldMapProps> = ({
     useEffect(() => {
         if (map.current?.isStyleLoaded() && map.current.getLayer("selected-countries")) {
             try {
-                map.current.setPaintProperty("selected-countries", "fill-opacity", [
-                    "case",
-                    ["in", ["get", "iso_3166_1"], ["literal", selectedCountries]],
-                    0.7,
-                    0,
-                ]);
+                console.log("Updating selected countries:", selectedCountries);
+                
+                // Update the filter to show only selected countries
+                const filter = selectedCountries.length > 0 
+                    ? ["in", ["get", "iso_3166_1"], ["literal", selectedCountries]]
+                    : ["==", ["get", "iso_3166_1"], ""];
+                    
+                console.log("Applying filter:", filter);
+                map.current.setFilter("selected-countries", filter);
             } catch (error) {
                 console.warn("Failed to update selected countries:", error);
             }
