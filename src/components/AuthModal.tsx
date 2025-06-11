@@ -40,13 +40,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         },
     });
 
-    const handleDialogClick = (e: React.MouseEvent<HTMLDialogElement>) => {
-        // Close modal if clicking on backdrop
-        if (e.target === e.currentTarget) {
-            onClose();
-        }
-    };
-
     const handleClose = () => {
         form.reset();
         setError(null);
@@ -56,17 +49,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
 
     return (
-        <dialog
-            open={isOpen}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm"
-            onClick={handleDialogClick}
+        <div 
+            className="fixed inset-0 z-50 flex items-center justify-center"
+            tabIndex={-1}
             onKeyDown={(e) => {
                 if (e.key === "Escape") {
                     onClose();
                 }
             }}
         >
-            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+            {/* Darkened Background Overlay */}
+            <div 
+                className="absolute inset-0 bg-[rgba(0,0,0,0.6)] backdrop-blur-sm transition-opacity duration-300"
+                onClick={onClose}
+            />
+
+            {/* Modal Content */}
+            <div 
+                className="relative bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden transform transition-all duration-300 scale-100 z-10"
+                onClick={(e) => e.stopPropagation()}
+            >
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-100">
                     <div className="flex items-center justify-between">
@@ -225,7 +227,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     </p>
                 </div>
             </div>
-        </dialog>
+        </div>
     );
 };
 
