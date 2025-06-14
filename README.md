@@ -14,3 +14,7 @@ The app uses IndexedDB to store the data on the client's device. You can also au
 ## Screenshot
 
 <img src="docs/app-screenshot.png">
+
+## License
+
+`Placemarker` is under the terms of the [MIT License](https://www.tldrlegal.com/l/mit), following all clarifications stated in the [license file](LICENSE).
