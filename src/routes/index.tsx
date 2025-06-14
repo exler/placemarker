@@ -1,3 +1,4 @@
+import PlacemarkerLogo from "@/assets/placemarker_logo.png";
 import AuthButton from "@/components/AuthButton";
 import CountrySelector from "@/components/CountrySelector";
 import WorldMap from "@/components/WorldMap";
@@ -207,6 +208,11 @@ function Index() {
     const initialCenter = useMemo<[number, number]>(() => [0, 20], []);
     return (
         <div className="relative w-full h-screen overflow-hidden bg-gradient-to-br from-blue-900 to-blue-700 dark:from-gray-900 dark:to-gray-800">
+            {/* Logo - Bottom Left */}
+            <div className="absolute bottom-4 left-4 z-20">
+                <img src={PlacemarkerLogo} alt="Placemarker" className="h-12 w-auto" />
+            </div>
+
             {/* Authentication Button - Top Left */}
             <AuthButton />
 

@@ -49,17 +49,6 @@ export const AuthButton: React.FC = () => {
                 >
                     {isAuthenticated ? (
                         <>
-                            {/* User Avatar or Icon */}
-                            <div className="w-5 h-5 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                    <title>User</title>
-                                    <path
-                                        fillRule="evenodd"
-                                        d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                                        clipRule="evenodd"
-                                    />
-                                </svg>
-                            </div>
                             <span className="hidden sm:inline text-sm font-medium">
                                 {user?.name || user?.email?.split("@")[0]}
                             </span>

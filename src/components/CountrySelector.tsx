@@ -82,7 +82,7 @@ export const CountrySelector: React.FC<CountrySelectorProps> = ({
             <div className="bg-white rounded-lg shadow-xl border border-gray-200 max-h-96 overflow-hidden">
                 {/* Header */}
                 <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-                    <h2 className="text-lg font-semibold text-gray-800">Country Selector</h2>
+                    <h2 className="text-lg font-semibold text-gray-800">Countries</h2>
                     {selectedCountries.length > 0 && (
                         <div className="flex items-center justify-between mt-2">
                             <span className="text-sm text-gray-600">{selectedCountries.length} selected</span>
