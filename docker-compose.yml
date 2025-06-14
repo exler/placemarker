@@ -1,12 +1,33 @@
 services:
-  pocketbase:
-    image: elestio/pocketbase:v0.28.2
-    restart: unless-stopped
-    ports:
-      - "8090:8090"
-    volumes:
-      - pocketbase_data:/pb_data
+    placemarker:
+        build:
+            context: .
+            dockerfile: Dockerfile
+            args:
+                VITE_MAPBOX_ACCESS_TOKEN: ${VITE_MAPBOX_ACCESS_TOKEN}
+        ports:
+            - "8080:80"
+        restart: unless-stopped
+        depends_on:
+            - pocketbase
+        environment:
+            - NODE_ENV=production
+        networks:
+            - placemarker
 
+    pocketbase:
+        image: elestio/pocketbase:v0.28.3
+        restart: unless-stopped
+        ports:
+            - "8090:8090"
+        volumes:
+            - pocketbase_data:/pb_data
+        networks:
+            - placemarker
 
 volumes:
-  pocketbase_data:
+    pocketbase_data:
+
+networks:
+    placemarker:
+        driver: bridge
