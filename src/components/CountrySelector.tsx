@@ -79,7 +79,7 @@ export const CountrySelector: React.FC<CountrySelectorProps> = ({
     return (
         <div className={`w-80 ${className}`}>
             {/* Country Selector Panel */}
-            <div className="bg-white rounded-lg shadow-xl border border-gray-200 max-h-96 overflow-hidden">
+            <div className="bg-white rounded-lg shadow-xl border border-gray-200 max-h-10/12 overflow-hidden">
                 {/* Header */}
                 <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
                     <h2 className="text-lg font-semibold text-gray-800">Countries</h2>
@@ -115,7 +115,7 @@ export const CountrySelector: React.FC<CountrySelectorProps> = ({
                 {selectedCountries.length > 0 && (
                     <div className="px-4 py-3 border-b border-gray-200 bg-yellow-50">
                         <h3 className="text-sm font-semibold text-gray-700 mb-2">Selected Countries</h3>
-                        <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
+                        <div className="flex flex-wrap gap-1 max-h-96 overflow-auto">
                             {selectedCountries.map((country) => (
                                 <span
                                     key={country.alpha3}
