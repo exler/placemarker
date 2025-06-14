@@ -2,7 +2,7 @@ import { type Country, alpha3ToCountry } from "@/lib/countries";
 import PocketBase from "pocketbase";
 
 // Initialize PocketBase instance
-export const pb = new PocketBase("http://localhost:8090");
+export const pb = new PocketBase(import.meta.env.VITE_POCKETBASE_URL);
 
 // Types for authentication
 export interface AuthUser {

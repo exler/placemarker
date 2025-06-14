@@ -2,6 +2,7 @@
 
 interface ImportMetaEnv {
     readonly VITE_MAPBOX_ACCESS_TOKEN: string;
+    readonly VITE_POCKETBASE_URL: string;
 }
 
 interface ImportMeta {
