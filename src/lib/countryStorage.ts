@@ -2,8 +2,7 @@
 export interface SelectedCountry {
     id: string;
     name: string;
-    iso2: string;
-    iso3: string;
+    alpha3: string;
     selectedAt: Date;
 }
 
@@ -33,7 +32,7 @@ class CountryStorageService {
                 if (!db.objectStoreNames.contains(this.storeName)) {
                     const store = db.createObjectStore(this.storeName, { keyPath: "id" });
                     store.createIndex("name", "name", { unique: false });
-                    store.createIndex("iso2", "iso2", { unique: false });
+                    store.createIndex("alpha3", "alpha3", { unique: false });
                     store.createIndex("selectedAt", "selectedAt", { unique: false });
                 }
             };
@@ -45,7 +44,7 @@ class CountryStorageService {
 
         const countryWithMetadata: SelectedCountry = {
             ...country,
-            id: country.iso2,
+            id: country.alpha3,
             selectedAt: new Date(),
         };
 

@@ -1,29 +1,8 @@
-import countries from "i18n-iso-countries";
+import { type Country, alpha3ToCountry } from "@/lib/countries";
 import PocketBase from "pocketbase";
-import type { Country } from "./countries";
 
 // Initialize PocketBase instance
 export const pb = new PocketBase("http://localhost:8090");
-
-// Helper function to convert ISO3 code to Country object
-function iso3ToCountry(iso3: string): Country | null {
-    try {
-        const iso2 = countries.alpha3ToAlpha2(iso3);
-        if (!iso2) return null;
-
-        const name = countries.getName(iso2, "en");
-        if (!name) return null;
-
-        return {
-            name,
-            iso2,
-            iso3,
-        };
-    } catch (error) {
-        console.error(`Failed to convert ISO3 ${iso3} to country:`, error);
-        return null;
-    }
-}
 
 // Types for authentication
 export interface AuthUser {
@@ -50,34 +29,6 @@ export interface CountrySelectionRecord {
 }
 
 class PocketbaseService {
-    constructor() {
-        // Initialize auth state from localStorage
-        this.initializeAuth();
-    }
-
-    private initializeAuth() {
-        // First, try to restore session-only auth if it exists
-        const sessionAuth = sessionStorage.getItem("pocketbase_auth_session");
-        if (sessionAuth && !pb.authStore.isValid) {
-            try {
-                const authData = JSON.parse(sessionAuth);
-                pb.authStore.save(authData.token, authData.model);
-                console.log("Session-only auth restored:", pb.authStore.model?.email);
-                return;
-            } catch (error) {
-                console.error("Failed to restore session auth:", error);
-                sessionStorage.removeItem("pocketbase_auth_session");
-            }
-        }
-        
-        // PocketBase automatically handles auth state persistence from localStorage
-        // This will restore the auth state if a valid token exists
-        if (pb.authStore.isValid) {
-            console.log("User already authenticated:", pb.authStore.model?.email);
-        }
-    }
-
-    // Authentication methods
     async login(credentials: LoginCredentials): Promise<AuthUser> {
         try {
             const authData = await pb.collection("users").authWithPassword(credentials.email, credentials.password);
@@ -132,18 +83,18 @@ class PocketbaseService {
         try {
             // Check if this country is already selected by this user
             const existingRecords = await pb.collection("country_selections").getList(1, 1, {
-                filter: `user="${user.id}" && country_alpha3="${country.iso3}"`,
+                filter: `user="${user.id}" && country_alpha3="${country.alpha3}"`,
             });
 
             if (existingRecords.items.length === 0) {
-                // Create new country selection record with only ISO3
+                // Create new country selection record with only alpha-3
                 const record: Omit<CountrySelectionRecord, "id" | "created" | "updated"> = {
                     user: user.id,
-                    country_alpha3: country.iso3,
+                    country_alpha3: country.alpha3,
                 };
 
                 await pb.collection("country_selections").create(record);
-                console.log(`Country selection saved: ${country.name} (${country.iso3})`);
+                console.log(`Country selection saved: ${country.name} (${country.alpha3})`);
             }
         } catch (error) {
             console.error("Failed to save country selection:", error);
@@ -151,7 +102,7 @@ class PocketbaseService {
         }
     }
 
-    async removeCountrySelection(countryIso3: string): Promise<void> {
+    async removeCountrySelection(countryAlpha3: string): Promise<void> {
         if (!this.isAuthenticated()) {
             throw new Error("User must be authenticated to remove country selections");
         }
@@ -164,12 +115,12 @@ class PocketbaseService {
         try {
             // Find the record to delete
             const records = await pb.collection("country_selections").getList(1, 1, {
-                filter: `user="${user.id}" && country_alpha3="${countryIso3}"`,
+                filter: `user="${user.id}" && country_alpha3="${countryAlpha3}"`,
             });
 
             if (records.items.length > 0) {
                 await pb.collection("country_selections").delete(records.items[0].id);
-                console.log(`Country selection removed: ${countryIso3}`);
+                console.log(`Country selection removed: ${countryAlpha3}`);
             }
         } catch (error) {
             console.error("Failed to remove country selection:", error);
@@ -196,7 +147,7 @@ class PocketbaseService {
             // Convert ISO3 codes to Country objects using the helper function
             const countries: Country[] = [];
             for (const record of records) {
-                const country = iso3ToCountry(record.country_alpha3);
+                const country = alpha3ToCountry(record.country_alpha3);
                 if (country) {
                     countries.push(country);
                 }

@@ -38,7 +38,7 @@ interface WorldMapProps {
      */
     mapStyle?: string;
     /**
-     * Array of selected country ISO2 codes to highlight in yellow.
+     * Array of selected country alpha-3 codes to highlight.
      */
     selectedCountries?: string[];
     /**
@@ -142,16 +142,17 @@ export const WorldMap: React.FC<WorldMapProps> = ({
                     const style = map.current.getStyle();
                     if (style?.layers) {
                         const textLayers = style.layers.filter(
-                            (layer) => layer.type === "symbol" && 
-                            layer.layout && 
-                            ("text-field" in layer.layout || "icon-image" in layer.layout)
+                            (layer) =>
+                                layer.type === "symbol" &&
+                                layer.layout &&
+                                ("text-field" in layer.layout || "icon-image" in layer.layout),
                         );
-                        
-                        textLayers.forEach((layer) => {
+
+                        for (const layer of textLayers) {
                             if (map.current?.getLayer(layer.id)) {
                                 map.current.removeLayer(layer.id);
                             }
-                        });
+                        }
                     }
 
                     // Add country boundaries source
@@ -160,38 +161,21 @@ export const WorldMap: React.FC<WorldMapProps> = ({
                         url: "mapbox://mapbox.country-boundaries-v1",
                     });
 
-                    // Find and remove any existing country fill layers from the base style that might interfere
-                    const currentStyle = map.current.getStyle();
-                    if (currentStyle?.layers) {
-                        const countryFillLayers = currentStyle.layers.filter(
-                            (layer) => layer.type === "fill" && 
-                            (layer.id.includes("country") || layer.id.includes("admin") || layer.id.includes("land"))
-                        );
-                        
-                        countryFillLayers.forEach((layer) => {
-                            if (map.current?.getLayer(layer.id)) {
-                                console.log("Removing interfering layer:", layer.id);
-                                map.current.removeLayer(layer.id);
-                            }
-                        });
-                    }
-
                     // Add selected countries highlight layer first (so it renders behind borders)
-                    map.current.addLayer(
-                        {
-                            id: "selected-countries",
-                            type: "fill",
-                            source: "country-boundaries",
-                            "source-layer": "country_boundaries",
-                            filter: initialSelectedCountries.current.length > 0 
-                                ? ["in", ["get", "iso_3166_1"], ["literal", initialSelectedCountries.current]]
-                                : ["==", ["get", "iso_3166_1"], ""],
-                            paint: {
-                                "fill-color": selectedCountryColor,
-                                "fill-opacity": 1.0, // Use full opacity to prevent blending
-                            },
-                        }
-                    );
+                    map.current.addLayer({
+                        id: "selected-countries",
+                        type: "fill",
+                        source: "country-boundaries",
+                        "source-layer": "country_boundaries",
+                        filter:
+                            initialSelectedCountries.current.length > 0
+                                ? ["in", ["get", "iso_3166_1_alpha_3"], ["literal", initialSelectedCountries.current]]
+                                : ["==", ["get", "iso_3166_1_alpha_3"], ""],
+                        paint: {
+                            "fill-color": selectedCountryColor,
+                            "fill-opacity": 1.0, // Use full opacity to prevent blending
+                        },
+                    });
 
                     // Add country borders layer on top (so it renders above the fills)
                     map.current.addLayer({
@@ -263,16 +247,17 @@ export const WorldMap: React.FC<WorldMapProps> = ({
     useEffect(() => {
         // Update the ref to keep track of the latest selected countries
         initialSelectedCountries.current = selectedCountries;
-        
+
         if (map.current?.isStyleLoaded() && map.current.getLayer("selected-countries")) {
             try {
                 console.log("Updating selected countries:", selectedCountries);
-                
+
                 // Update the filter to show only selected countries
-                const filter = selectedCountries.length > 0 
-                    ? ["in", ["get", "iso_3166_1"], ["literal", selectedCountries]]
-                    : ["==", ["get", "iso_3166_1"], ""];
-                    
+                const filter =
+                    selectedCountries.length > 0
+                        ? ["in", ["get", "iso_3166_1_alpha_3"], ["literal", selectedCountries]]
+                        : ["==", ["get", "iso_3166_1_alpha_3"], ""];
+
                 console.log("Applying filter:", filter);
                 map.current.setFilter("selected-countries", filter);
             } catch (error) {

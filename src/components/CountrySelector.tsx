@@ -45,10 +45,9 @@ export const CountrySelector: React.FC<CountrySelectorProps> = ({
 
                     // Convert to SelectedCountry format for local storage compatibility
                     const pocketbaseSelections: SelectedCountry[] = pocketbaseCountries.map((country) => ({
-                        id: country.iso2,
+                        id: country.alpha3,
                         name: country.name,
-                        iso2: country.iso2,
-                        iso3: country.iso3,
+                        alpha3: country.alpha3,
                         selectedAt: new Date(), // We don't have the exact timestamp, use current time
                     }));
 
@@ -60,12 +59,12 @@ export const CountrySelector: React.FC<CountrySelectorProps> = ({
 
                     // Add local selections first
                     for (const country of localSelections) {
-                        countryMap.set(country.iso2, country);
+                        countryMap.set(country.alpha3, country);
                     }
 
                     // Add/override with Pocketbase selections
                     for (const country of pocketbaseSelections) {
-                        countryMap.set(country.iso2, country);
+                        countryMap.set(country.alpha3, country);
                     }
 
                     const mergedSelections = Array.from(countryMap.values());
@@ -73,13 +72,12 @@ export const CountrySelector: React.FC<CountrySelectorProps> = ({
 
                     // Sync any local-only selections to Pocketbase
                     for (const localCountry of localSelections) {
-                        const existsInPocketbase = pocketbaseSelections.some((pc) => pc.iso2 === localCountry.iso2);
+                        const existsInPocketbase = pocketbaseSelections.some((pc) => pc.alpha3 === localCountry.alpha3);
                         if (!existsInPocketbase) {
                             try {
                                 await pocketbaseService.saveCountrySelection({
                                     name: localCountry.name,
-                                    iso2: localCountry.iso2,
-                                    iso3: localCountry.iso3,
+                                    alpha3: localCountry.alpha3,
                                 });
                             } catch (error) {
                                 console.error(`Failed to sync ${localCountry.name} to Pocketbase:`, error);
@@ -109,16 +107,16 @@ export const CountrySelector: React.FC<CountrySelectorProps> = ({
         setIsLoading(true);
         try {
             // Check if country is already selected
-            const isSelected = await countryStorage.isCountrySelected(country.iso2);
+            const isSelected = await countryStorage.isCountrySelected(country.alpha3);
 
             if (isSelected) {
                 // Deselect the country
-                await countryStorage.removeCountry(country.iso2);
-                setSelectedCountries((prev) => prev.filter((c) => c.iso2 !== country.iso2));
-                onCountryDeselect?.(country.iso2); // Also remove from Pocketbase if authenticated
+                await countryStorage.removeCountry(country.alpha3);
+                setSelectedCountries((prev) => prev.filter((c) => c.alpha3 !== country.alpha3));
+                onCountryDeselect?.(country.alpha3); // Also remove from Pocketbase if authenticated
                 if (isAuthenticated) {
                     try {
-                        await pocketbaseService.removeCountrySelection(country.iso3);
+                        await pocketbaseService.removeCountrySelection(country.alpha3);
                     } catch (error) {
                         console.error("Failed to remove country from Pocketbase:", error);
                     }
@@ -127,15 +125,13 @@ export const CountrySelector: React.FC<CountrySelectorProps> = ({
                 // Select the country
                 await countryStorage.addCountry({
                     name: country.name,
-                    iso2: country.iso2,
-                    iso3: country.iso3,
+                    alpha3: country.alpha3,
                 });
 
                 const newSelected: SelectedCountry = {
-                    id: country.iso2,
+                    id: country.alpha3,
                     name: country.name,
-                    iso2: country.iso2,
-                    iso3: country.iso3,
+                    alpha3: country.alpha3,
                     selectedAt: new Date(),
                 };
 
@@ -165,7 +161,7 @@ export const CountrySelector: React.FC<CountrySelectorProps> = ({
 
             // Notify about deselection for each country
             for (const country of selectedCountries) {
-                onCountryDeselect?.(country.iso2);
+                onCountryDeselect?.(country.alpha3);
             }
 
             setSelectedCountries([]);
@@ -185,8 +181,8 @@ export const CountrySelector: React.FC<CountrySelectorProps> = ({
         }
     };
 
-    const isCountrySelected = (countryIso2: string) => {
-        return selectedCountries.some((c) => c.iso2 === countryIso2);
+    const isCountrySelected = (countryAlpha3: string) => {
+        return selectedCountries.some((c) => c.alpha3 === countryAlpha3);
     };
     return (
         <div className={`w-80 ${className}`}>
@@ -230,7 +226,7 @@ export const CountrySelector: React.FC<CountrySelectorProps> = ({
                         <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
                             {selectedCountries.map((country) => (
                                 <span
-                                    key={country.iso2}
+                                    key={country.alpha3}
                                     className="inline-flex items-center px-2 py-1 bg-yellow-200 text-yellow-800 text-xs font-medium rounded-full"
                                 >
                                     {country.name}
@@ -240,8 +236,7 @@ export const CountrySelector: React.FC<CountrySelectorProps> = ({
                                             // Convert SelectedCountry to Country format for the handler
                                             const countryForHandler: Country = {
                                                 name: country.name,
-                                                iso2: country.iso2,
-                                                iso3: country.iso3,
+                                                alpha3: country.alpha3,
                                             };
                                             handleCountrySelect(countryForHandler);
                                         }}
@@ -273,11 +268,11 @@ export const CountrySelector: React.FC<CountrySelectorProps> = ({
                     ) : (
                         <div className="py-2">
                             {searchResults.map((country) => {
-                                const selected = isCountrySelected(country.iso2);
+                                const selected = isCountrySelected(country.alpha3);
                                 return (
                                     <button
                                         type="button"
-                                        key={country.iso2}
+                                        key={country.alpha3}
                                         onClick={() => handleCountrySelect(country)}
                                         className={`w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors duration-150 flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed ${
                                             selected ? "bg-yellow-50 border-l-4 border-yellow-400" : ""
@@ -286,9 +281,7 @@ export const CountrySelector: React.FC<CountrySelectorProps> = ({
                                     >
                                         <div>
                                             <div className="font-medium text-gray-900">{country.name}</div>
-                                            <div className="text-xs text-gray-500">
-                                                {country.iso2} • {country.iso3}
-                                            </div>
+                                            <div className="text-xs text-gray-500">{country.alpha3}</div>
                                         </div>
                                         {selected && (
                                             <div className="text-yellow-600">

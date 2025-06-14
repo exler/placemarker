@@ -20,7 +20,7 @@ function Index() {
             try {
                 await countryStorage.init();
                 const stored = await countryStorage.getSelectedCountries();
-                setSelectedCountries(stored.map((country) => country.iso2));
+                setSelectedCountries(stored.map((country) => country.alpha3));
             } catch (error) {
                 console.error("Failed to load selected countries:", error);
             }
@@ -38,7 +38,7 @@ function Index() {
     }, []);
 
     const handleCountrySelect = useCallback((country: Country) => {
-        setSelectedCountries((prev) => [...prev, country.iso2]);
+        setSelectedCountries((prev) => [...prev, country.alpha3]);
         console.log("Country selected:", country.name);
     }, []);
 
