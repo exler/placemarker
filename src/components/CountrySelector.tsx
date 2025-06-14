@@ -1,99 +1,34 @@
-import { useAuth } from "@/lib/auth";
 import { type Country, searchCountries } from "@/lib/countries";
-import { type SelectedCountry, countryStorage } from "@/lib/countryStorage";
-import { pocketbaseService } from "@/lib/pocketbase";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 
 interface CountrySelectorProps {
+    initialSelectedCountries?: Country[];
     onCountrySelect?: (country: Country) => void;
     onCountryDeselect?: (countryId: string) => void;
+    onClearAll?: () => void;
     className?: string;
 }
 
 export const CountrySelector: React.FC<CountrySelectorProps> = ({
+    initialSelectedCountries = [],
     onCountrySelect,
     onCountryDeselect,
+    onClearAll,
     className = "",
 }) => {
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState<Country[]>([]);
-    const [selectedCountries, setSelectedCountries] = useState<SelectedCountry[]>([]);
+    const [selectedCountries, setSelectedCountries] = useState<Country[]>(initialSelectedCountries);
     const [isLoading, setIsLoading] = useState(false);
 
     const searchInputRef = useRef<HTMLInputElement>(null);
-    const { isAuthenticated } = useAuth(); // Initialize IndexedDB and load selected countries
+
+    // Update selected countries when initialSelectedCountries prop changes
     useEffect(() => {
-        const initializeStorage = async () => {
-            try {
-                await countryStorage.init();
-                const selected = await countryStorage.getSelectedCountries();
-                setSelectedCountries(selected);
-            } catch (error) {
-                console.error("Failed to initialize country storage:", error);
-            }
-        };
+        setSelectedCountries(initialSelectedCountries);
+    }, [initialSelectedCountries]);
 
-        initializeStorage();
-    }, []); // Sync with Pocketbase when user authentication state changes
-    useEffect(() => {
-        const syncWithPocketbase = async () => {
-            if (isAuthenticated) {
-                try {
-                    // Get selections from Pocketbase (now returns Country[] directly)
-                    const pocketbaseCountries = await pocketbaseService.getUserCountrySelections();
-
-                    // Convert to SelectedCountry format for local storage compatibility
-                    const pocketbaseSelections: SelectedCountry[] = pocketbaseCountries.map((country) => ({
-                        id: country.alpha3,
-                        name: country.name,
-                        alpha3: country.alpha3,
-                        selectedAt: new Date(), // We don't have the exact timestamp, use current time
-                    }));
-
-                    // Get current local selections
-                    const localSelections = await countryStorage.getSelectedCountries();
-
-                    // Create a map of all unique countries (prefer Pocketbase data for conflicts)
-                    const countryMap = new Map<string, SelectedCountry>();
-
-                    // Add local selections first
-                    for (const country of localSelections) {
-                        countryMap.set(country.alpha3, country);
-                    }
-
-                    // Add/override with Pocketbase selections
-                    for (const country of pocketbaseSelections) {
-                        countryMap.set(country.alpha3, country);
-                    }
-
-                    const mergedSelections = Array.from(countryMap.values());
-                    setSelectedCountries(mergedSelections);
-
-                    // Sync any local-only selections to Pocketbase
-                    for (const localCountry of localSelections) {
-                        const existsInPocketbase = pocketbaseSelections.some((pc) => pc.alpha3 === localCountry.alpha3);
-                        if (!existsInPocketbase) {
-                            try {
-                                await pocketbaseService.saveCountrySelection({
-                                    name: localCountry.name,
-                                    alpha3: localCountry.alpha3,
-                                });
-                            } catch (error) {
-                                console.error(`Failed to sync ${localCountry.name} to Pocketbase:`, error);
-                            }
-                        }
-                    }
-
-                    console.log("Successfully synced with Pocketbase");
-                } catch (error) {
-                    console.error("Failed to sync with Pocketbase:", error);
-                }
-            }
-        };
-
-        syncWithPocketbase();
-    }, [isAuthenticated]);
     // Handle search input changes
     useEffect(() => {
         if (searchQuery.trim()) {
@@ -103,49 +38,20 @@ export const CountrySelector: React.FC<CountrySelectorProps> = ({
             setSearchResults([]);
         }
     }, [searchQuery]);
+
     const handleCountrySelect = async (country: Country) => {
         setIsLoading(true);
         try {
-            // Check if country is already selected
-            const isSelected = await countryStorage.isCountrySelected(country.alpha3);
+            const isSelected = isCountrySelected(country.alpha3);
 
             if (isSelected) {
                 // Deselect the country
-                await countryStorage.removeCountry(country.alpha3);
                 setSelectedCountries((prev) => prev.filter((c) => c.alpha3 !== country.alpha3));
-                onCountryDeselect?.(country.alpha3); // Also remove from Pocketbase if authenticated
-                if (isAuthenticated) {
-                    try {
-                        await pocketbaseService.removeCountrySelection(country.alpha3);
-                    } catch (error) {
-                        console.error("Failed to remove country from Pocketbase:", error);
-                    }
-                }
+                onCountryDeselect?.(country.alpha3);
             } else {
                 // Select the country
-                await countryStorage.addCountry({
-                    name: country.name,
-                    alpha3: country.alpha3,
-                });
-
-                const newSelected: SelectedCountry = {
-                    id: country.alpha3,
-                    name: country.name,
-                    alpha3: country.alpha3,
-                    selectedAt: new Date(),
-                };
-
-                setSelectedCountries((prev) => [...prev, newSelected]);
+                setSelectedCountries((prev) => [...prev, country]);
                 onCountrySelect?.(country);
-
-                // Also save to Pocketbase if authenticated
-                if (isAuthenticated) {
-                    try {
-                        await pocketbaseService.saveCountrySelection(country);
-                    } catch (error) {
-                        console.error("Failed to save country to Pocketbase:", error);
-                    }
-                }
             }
         } catch (error) {
             console.error("Failed to toggle country selection:", error);
@@ -154,26 +60,12 @@ export const CountrySelector: React.FC<CountrySelectorProps> = ({
             setSearchQuery("");
         }
     };
+
     const handleClearAll = async () => {
         setIsLoading(true);
         try {
-            await countryStorage.clearAllCountries();
-
-            // Notify about deselection for each country
-            for (const country of selectedCountries) {
-                onCountryDeselect?.(country.alpha3);
-            }
-
             setSelectedCountries([]);
-
-            // Also clear from Pocketbase if authenticated
-            if (isAuthenticated) {
-                try {
-                    await pocketbaseService.clearAllCountrySelections();
-                } catch (error) {
-                    console.error("Failed to clear countries from Pocketbase:", error);
-                }
-            }
+            onClearAll?.();
         } catch (error) {
             console.error("Failed to clear all countries:", error);
         } finally {
@@ -232,14 +124,7 @@ export const CountrySelector: React.FC<CountrySelectorProps> = ({
                                     {country.name}
                                     <button
                                         type="button"
-                                        onClick={() => {
-                                            // Convert SelectedCountry to Country format for the handler
-                                            const countryForHandler: Country = {
-                                                name: country.name,
-                                                alpha3: country.alpha3,
-                                            };
-                                            handleCountrySelect(countryForHandler);
-                                        }}
+                                        onClick={() => handleCountrySelect(country)}
                                         className="ml-1 hover:text-yellow-900"
                                         title={`Remove ${country.name}`}
                                         disabled={isLoading}
