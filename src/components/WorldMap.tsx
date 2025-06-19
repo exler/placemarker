@@ -145,6 +145,7 @@ export const WorldMap: React.FC<WorldMapProps> = ({
                 projection: "mercator" as const,
                 attributionControl: true,
                 logoPosition: "bottom-right",
+                dragRotate: false,
             });
 
             // Handle map load event
