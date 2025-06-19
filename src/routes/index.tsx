@@ -247,6 +247,19 @@ function Index() {
     const handleHomelandSelect = useCallback(
         async (country: Country) => {
             try {
+                // Set as homeland
+                setHomelandCountry(country);
+                await userSettingsStorage.setHomeland(country);
+
+                // Also save to Pocketbase if authenticated
+                if (isAuthenticated) {
+                    try {
+                        await pocketbaseService.setHomeland(country);
+                    } catch (error) {
+                        console.error("Failed to save homeland to Pocketbase:", error);
+                    }
+                }
+
                 // Check if this country is currently selected as visited
                 const isCurrentlySelected = selectedCountries.includes(country.alpha3);
 
@@ -262,19 +275,6 @@ function Index() {
                         } catch (error) {
                             console.error("Failed to remove country from Pocketbase:", error);
                         }
-                    }
-                }
-
-                // Set as homeland
-                await userSettingsStorage.setHomeland(country);
-                setHomelandCountry(country);
-
-                // Also save to Pocketbase if authenticated
-                if (isAuthenticated) {
-                    try {
-                        await pocketbaseService.setHomeland(country);
-                    } catch (error) {
-                        console.error("Failed to save homeland to Pocketbase:", error);
                     }
                 }
 
@@ -310,7 +310,6 @@ function Index() {
     // Arrays are compared by reference, so [0, 20] will create a new array each time the component renders
     // causing the useEffect in WorldMap to trigger and cause a blinking effect.
     const initialCenter = useMemo<[number, number]>(() => [10, 20], []);
-    const homelandCountries = useMemo(() => (homelandCountry ? [homelandCountry.alpha3] : []), [homelandCountry]);
 
     return (
         <div className="relative w-full h-screen overflow-hidden bg-gradient-to-br from-blue-900 to-blue-700 dark:from-gray-900 dark:to-gray-800">
@@ -359,7 +358,7 @@ function Index() {
                     borderWidth={1.5}
                     mapStyle="mapbox://styles/mapbox/dark-v11"
                     selectedCountries={selectedCountries}
-                    homelandCountries={homelandCountries}
+                    homelandCountries={homelandCountry ? [homelandCountry.alpha3] : undefined}
                     selectedCountryColor="#fbbf24"
                     homelandCountryColor="#3b82f6"
                     onMapLoad={handleMapLoad}
