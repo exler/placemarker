@@ -2,16 +2,7 @@ import type React from "react";
 import { createContext, useContext, useEffect, useState } from "react";
 import type { AuthUser } from "./pocketbase";
 import { pocketbaseService } from "./pocketbase";
-
-// Interface for the model object from PocketBase auth store
-interface PocketBaseAuthModel {
-    id: string;
-    email: string;
-    name?: string;
-    avatar?: string;
-    created: string;
-    updated: string;
-}
+import type { AuthUser as PocketBaseAuthModel } from "./pocketbase";
 
 interface AuthContextType {
     user: AuthUser | null;
@@ -47,12 +38,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setIsLoading(false);
         };
 
-        initializeAuth(); 
-        
+        initializeAuth();
+
         // Listen for auth changes
         const unsubscribe = pocketbaseService.onChange((token, model) => {
             setIsLoading(false); // Ensure loading is cleared on any auth change
-            
+
             if (token && model) {
                 // Type guard to ensure model has the expected properties
                 const isValidModel = (obj: unknown): obj is PocketBaseAuthModel => {
@@ -64,7 +55,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                         id: model.id,
                         email: model.email,
                         name: model.name,
-                        avatar: model.avatar,
+                        homeland_alpha3: model.homeland_alpha3,
                         created: model.created,
                         updated: model.updated,
                     };

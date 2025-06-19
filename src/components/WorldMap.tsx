@@ -42,9 +42,17 @@ interface WorldMapProps {
      */
     selectedCountries?: string[];
     /**
+     * Array of homeland country alpha-3 codes to highlight in blue.
+     */
+    homelandCountries?: string[];
+    /**
      * Color for selected countries fill.
      */
     selectedCountryColor?: string;
+    /**
+     * Color for homeland countries fill.
+     */
+    homelandCountryColor?: string;
     /**
      * Callback when map is loaded.
      */
@@ -66,6 +74,7 @@ const defaultProps: Required<
         | "borderWidth"
         | "mapStyle"
         | "selectedCountryColor"
+        | "homelandCountryColor"
     >
 > = {
     width: "100%",
@@ -76,6 +85,7 @@ const defaultProps: Required<
     borderWidth: 2,
     mapStyle: "mapbox://styles/mapbox/satellite-dark-v11",
     selectedCountryColor: "#fbbf24", // Tailwind yellow-400
+    homelandCountryColor: "#3b82f6", // Tailwind blue-500
 };
 
 /**
@@ -92,13 +102,16 @@ export const WorldMap: React.FC<WorldMapProps> = ({
     borderWidth = defaultProps.borderWidth,
     mapStyle = defaultProps.mapStyle,
     selectedCountries = [],
+    homelandCountries = [],
     selectedCountryColor = defaultProps.selectedCountryColor,
+    homelandCountryColor = defaultProps.homelandCountryColor,
     onMapLoad,
     onMapError,
 }) => {
     const mapContainer = useRef<HTMLDivElement>(null);
     const map = useRef<mapboxgl.Map | null>(null);
     const initialSelectedCountries = useRef<string[]>(selectedCountries);
+    const initialHomelandCountries = useRef<string[]>(homelandCountries);
 
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -177,6 +190,22 @@ export const WorldMap: React.FC<WorldMapProps> = ({
                         },
                     });
 
+                    // Add homeland countries highlight layer (renders on top of selected countries)
+                    map.current.addLayer({
+                        id: "homeland-countries",
+                        type: "fill",
+                        source: "country-boundaries",
+                        "source-layer": "country_boundaries",
+                        filter:
+                            initialHomelandCountries.current.length > 0
+                                ? ["in", ["get", "iso_3166_1_alpha_3"], ["literal", initialHomelandCountries.current]]
+                                : ["==", ["get", "iso_3166_1_alpha_3"], ""],
+                        paint: {
+                            "fill-color": homelandCountryColor,
+                            "fill-opacity": 1.0, // Use full opacity to prevent blending
+                        },
+                    });
+
                     // Add country borders layer on top (so it renders above the fills)
                     map.current.addLayer({
                         id: "country-borders",
@@ -239,32 +268,47 @@ export const WorldMap: React.FC<WorldMapProps> = ({
         borderColor,
         borderWidth,
         selectedCountryColor,
+        homelandCountryColor,
         onMapLoad,
         onMapError,
     ]);
 
-    // Update selected countries when they change
+    // Update selected and homeland countries when they change
     useEffect(() => {
-        // Update the ref to keep track of the latest selected countries
+        // Update the refs to keep track of the latest countries
         initialSelectedCountries.current = selectedCountries;
+        initialHomelandCountries.current = homelandCountries;
 
-        if (map.current?.isStyleLoaded() && map.current.getLayer("selected-countries")) {
+        if (map.current?.isStyleLoaded()) {
             try {
-                console.log("Updating selected countries:", selectedCountries);
+                // Update selected countries filter
+                if (map.current.getLayer("selected-countries")) {
+                    console.log("Updating selected countries:", selectedCountries);
+                    const selectedFilter =
+                        selectedCountries.length > 0
+                            ? ["in", ["get", "iso_3166_1_alpha_3"], ["literal", selectedCountries]]
+                            : ["==", ["get", "iso_3166_1_alpha_3"], ""];
 
-                // Update the filter to show only selected countries
-                const filter =
-                    selectedCountries.length > 0
-                        ? ["in", ["get", "iso_3166_1_alpha_3"], ["literal", selectedCountries]]
-                        : ["==", ["get", "iso_3166_1_alpha_3"], ""];
+                    console.log("Applying selected countries filter:", selectedFilter);
+                    map.current.setFilter("selected-countries", selectedFilter);
+                }
 
-                console.log("Applying filter:", filter);
-                map.current.setFilter("selected-countries", filter);
+                // Update homeland countries filter
+                if (map.current.getLayer("homeland-countries")) {
+                    console.log("Updating homeland countries:", homelandCountries);
+                    const homelandFilter =
+                        homelandCountries.length > 0
+                            ? ["in", ["get", "iso_3166_1_alpha_3"], ["literal", homelandCountries]]
+                            : ["==", ["get", "iso_3166_1_alpha_3"], ""];
+
+                    console.log("Applying homeland countries filter:", homelandFilter);
+                    map.current.setFilter("homeland-countries", homelandFilter);
+                }
             } catch (error) {
-                console.warn("Failed to update selected countries:", error);
+                console.warn("Failed to update countries:", error);
             }
         }
-    }, [selectedCountries]);
+    }, [selectedCountries, homelandCountries]);
 
     // Handle container size changes
     useEffect(() => {

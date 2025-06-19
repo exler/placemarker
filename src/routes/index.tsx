@@ -1,11 +1,13 @@
 import PlacemarkerLogo from "@/assets/placemarker_logo.png";
 import AuthButton from "@/components/AuthButton";
 import CountrySelector from "@/components/CountrySelector";
+import HomelandSelector from "@/components/HomelandSelector";
 import WorldMap from "@/components/WorldMap";
 import { useAuth } from "@/lib/auth";
 import type { Country } from "@/lib/countries";
 import { type SelectedCountry, countryStorage } from "@/lib/countryStorage";
 import { pocketbaseService } from "@/lib/pocketbase";
+import { userSettingsStorage } from "@/lib/userSettingsStorage";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -17,16 +19,19 @@ function Index() {
     const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
     const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
     const [initialCountries, setInitialCountries] = useState<Country[]>([]);
+    const [homelandCountry, setHomelandCountry] = useState<Country | null>(null);
+    const [isHomelandSelectorOpen, setIsHomelandSelectorOpen] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
 
-    const { isAuthenticated } = useAuth();
-
-    // Initialize and load selected countries from IndexedDB/Pocketbase
+    const { isAuthenticated } = useAuth(); // Initialize and load selected countries from IndexedDB/Pocketbase
     useEffect(() => {
         const loadSelectedCountries = async () => {
             try {
                 await countryStorage.init();
+                await userSettingsStorage.init();
+
                 const stored = await countryStorage.getSelectedCountries();
+                const storedHomeland = await userSettingsStorage.getHomeland();
 
                 // Convert SelectedCountry[] to Country[] for the component
                 const countries: Country[] = stored.map((sc) => ({
@@ -36,6 +41,14 @@ function Index() {
 
                 setInitialCountries(countries);
                 setSelectedCountries(stored.map((country) => country.alpha3));
+
+                if (storedHomeland) {
+                    setHomelandCountry({
+                        name: storedHomeland.name,
+                        alpha3: storedHomeland.alpha3,
+                    });
+                }
+
                 setIsInitialized(true);
             } catch (error) {
                 console.error("Failed to load selected countries:", error);
@@ -53,6 +66,7 @@ function Index() {
                 try {
                     // Get selections from Pocketbase
                     const pocketbaseCountries = await pocketbaseService.getUserCountrySelections();
+                    const pocketbaseHomeland = await pocketbaseService.getHomeland();
 
                     // Convert to SelectedCountry format for local storage compatibility
                     const pocketbaseSelections: SelectedCountry[] = pocketbaseCountries.map((country) => ({
@@ -64,6 +78,7 @@ function Index() {
 
                     // Get current local selections
                     const localSelections = await countryStorage.getSelectedCountries();
+                    const localHomeland = await userSettingsStorage.getHomeland();
 
                     // Create a map of all unique countries (prefer Pocketbase data for conflicts)
                     const countryMap = new Map<string, SelectedCountry>();
@@ -79,6 +94,22 @@ function Index() {
                     }
 
                     const mergedSelections = Array.from(countryMap.values());
+
+                    // Handle homeland sync
+                    const syncedHomeland = pocketbaseHomeland || localHomeland;
+                    if (syncedHomeland) {
+                        if (
+                            pocketbaseHomeland &&
+                            (!localHomeland || localHomeland.alpha3 !== pocketbaseHomeland.alpha3)
+                        ) {
+                            // PocketBase has different homeland, update local
+                            await userSettingsStorage.setHomeland(pocketbaseHomeland);
+                        } else if (localHomeland && !pocketbaseHomeland) {
+                            // Local has homeland but PocketBase doesn't, sync to PocketBase
+                            await pocketbaseService.setHomeland(localHomeland);
+                        }
+                        setHomelandCountry(syncedHomeland);
+                    }
 
                     // Update component state
                     const countries: Country[] = mergedSelections.map((sc) => ({
@@ -99,7 +130,7 @@ function Index() {
                                     alpha3: localCountry.alpha3,
                                 });
                             } catch (error) {
-                                console.error(`Failed to sync ${localCountry.name} to Pocketbase:`, error);
+                                console.error("Failed to sync local selection to Pocketbase:", error);
                             }
                         }
                     }
@@ -108,6 +139,10 @@ function Index() {
                 } catch (error) {
                     console.error("Failed to sync with Pocketbase:", error);
                 }
+            } else if (!isAuthenticated) {
+                // User logged out, clear homeland
+                setHomelandCountry(null);
+                await userSettingsStorage.clearHomeland();
             }
         };
 
@@ -125,6 +160,12 @@ function Index() {
     const handleCountrySelect = useCallback(
         async (country: Country) => {
             try {
+                // Prevent selecting homeland as visited
+                if (homelandCountry?.alpha3 === country.alpha3) {
+                    console.log("Cannot select homeland as visited country");
+                    return;
+                }
+
                 // Add to local storage
                 await countryStorage.addCountry({
                     name: country.name,
@@ -149,7 +190,7 @@ function Index() {
                 console.error("Failed to select country:", error);
             }
         },
-        [isAuthenticated],
+        [isAuthenticated, homelandCountry],
     );
 
     const handleCountryDeselect = useCallback(
@@ -203,9 +244,74 @@ function Index() {
         }
     }, [isAuthenticated]);
 
+    const handleHomelandSelect = useCallback(
+        async (country: Country) => {
+            try {
+                // Check if this country is currently selected as visited
+                const isCurrentlySelected = selectedCountries.includes(country.alpha3);
+
+                if (isCurrentlySelected) {
+                    // Remove from visited countries
+                    await countryStorage.removeCountry(country.alpha3);
+                    setSelectedCountries((prev) => prev.filter((id) => id !== country.alpha3));
+                    setInitialCountries((prev) => prev.filter((c) => c.alpha3 !== country.alpha3));
+
+                    if (isAuthenticated) {
+                        try {
+                            await pocketbaseService.removeCountrySelection(country.alpha3);
+                        } catch (error) {
+                            console.error("Failed to remove country from Pocketbase:", error);
+                        }
+                    }
+                }
+
+                // Set as homeland
+                await userSettingsStorage.setHomeland(country);
+                setHomelandCountry(country);
+
+                // Also save to Pocketbase if authenticated
+                if (isAuthenticated) {
+                    try {
+                        await pocketbaseService.setHomeland(country);
+                    } catch (error) {
+                        console.error("Failed to save homeland to Pocketbase:", error);
+                    }
+                }
+
+                console.log("Homeland set:", country.name);
+            } catch (error) {
+                console.error("Failed to set homeland:", error);
+            }
+        },
+        [selectedCountries, isAuthenticated],
+    );
+
+    const handleHomelandClear = useCallback(async () => {
+        try {
+            // Clear from local storage
+            await userSettingsStorage.clearHomeland();
+            setHomelandCountry(null);
+
+            // Also clear from Pocketbase if authenticated
+            if (isAuthenticated) {
+                try {
+                    await pocketbaseService.clearHomeland();
+                } catch (error) {
+                    console.error("Failed to clear homeland from Pocketbase:", error);
+                }
+            }
+
+            console.log("Homeland cleared");
+        } catch (error) {
+            console.error("Failed to clear homeland:", error);
+        }
+    }, [isAuthenticated]);
+
     // Arrays are compared by reference, so [0, 20] will create a new array each time the component renders
     // causing the useEffect in WorldMap to trigger and cause a blinking effect.
     const initialCenter = useMemo<[number, number]>(() => [0, 20], []);
+    const homelandCountries = useMemo(() => (homelandCountry ? [homelandCountry.alpha3] : []), [homelandCountry]);
+
     return (
         <div className="relative w-full h-screen overflow-hidden bg-gradient-to-br from-blue-900 to-blue-700 dark:from-gray-900 dark:to-gray-800">
             {/* Logo - Bottom Left */}
@@ -214,17 +320,31 @@ function Index() {
             </div>
 
             {/* Authentication Button - Top Left */}
-            <AuthButton />
+            <AuthButton
+                homelandCountry={homelandCountry}
+                onHomelandButtonClick={() => setIsHomelandSelectorOpen(true)}
+            />
 
             {/* Country Selector Widget - Top Right */}
             <div className="absolute top-4 right-4 z-10">
                 <CountrySelector
                     initialSelectedCountries={initialCountries}
+                    homelandCountry={homelandCountry}
                     onCountrySelect={handleCountrySelect}
                     onCountryDeselect={handleCountryDeselect}
                     onClearAll={handleClearAll}
                 />
             </div>
+
+            {/* Homeland Selector Modal */}
+            {isHomelandSelectorOpen && (
+                <HomelandSelector
+                    currentHomeland={homelandCountry}
+                    onHomelandSelect={handleHomelandSelect}
+                    onHomelandClear={handleHomelandClear}
+                    onClose={() => setIsHomelandSelectorOpen(false)}
+                />
+            )}
 
             {/* World Map */}
             <div className="absolute inset-0">
@@ -238,7 +358,9 @@ function Index() {
                     borderWidth={1.5}
                     mapStyle="mapbox://styles/mapbox/dark-v11"
                     selectedCountries={selectedCountries}
+                    homelandCountries={homelandCountries}
                     selectedCountryColor="#fbbf24"
+                    homelandCountryColor="#3b82f6"
                     onMapLoad={handleMapLoad}
                     onMapError={handleMapError}
                 />

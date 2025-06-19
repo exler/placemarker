@@ -94,24 +94,18 @@
         "type": "text"
       },
       {
+        "autogeneratePattern": "",
         "hidden": false,
-        "id": "file376926767",
-        "maxSelect": 1,
-        "maxSize": 0,
-        "mimeTypes": [
-          "image/jpeg",
-          "image/png",
-          "image/svg+xml",
-          "image/gif",
-          "image/webp"
-        ],
-        "name": "avatar",
+        "id": "text2043826619",
+        "max": 3,
+        "min": 3,
+        "name": "homeland_alpha3",
+        "pattern": "^[A-Z]{3}$",
         "presentable": false,
-        "protected": false,
+        "primaryKey": false,
         "required": false,
         "system": false,
-        "thumbs": null,
-        "type": "file"
+        "type": "text"
       },
       {
         "hidden": false,
@@ -153,7 +147,7 @@
         "id": "",
         "name": "name",
         "username": "",
-        "avatarURL": "avatar"
+        "avatarURL": ""
       },
       "enabled": false
     },
@@ -249,7 +243,7 @@
         "max": 3,
         "min": 3,
         "name": "country_alpha3",
-        "pattern": "[A-Z]{3}$",
+        "pattern": "^[A-Z]{3}$",
         "presentable": false,
         "primaryKey": false,
         "required": true,
@@ -278,7 +272,7 @@
       }
     ],
     "indexes": [
-      "CREATE INDEX `idx_tlnu7F7f6L` ON `country_selections` (`user`)"
+      "CREATE INDEX `idx_joaI0rE35M` ON `country_selections` (`user`)"
     ],
     "system": false
   }

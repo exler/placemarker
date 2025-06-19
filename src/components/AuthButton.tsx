@@ -1,9 +1,15 @@
 import { useAuth } from "@/lib/auth";
+import type { Country } from "@/lib/countries";
 import type React from "react";
 import { useState } from "react";
 import AuthModal from "./AuthModal";
 
-export const AuthButton: React.FC = () => {
+interface AuthButtonProps {
+    homelandCountry?: Country | null;
+    onHomelandButtonClick?: () => void;
+}
+
+export const AuthButton: React.FC<AuthButtonProps> = ({ homelandCountry, onHomelandButtonClick }) => {
     const { user, isAuthenticated, logout } = useAuth();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -104,6 +110,27 @@ export const AuthButton: React.FC = () => {
                                 <div className="px-4 py-2 text-xs text-gray-500 border-b border-gray-100">
                                     <p>✅ Country selections synced</p>
                                 </div>
+
+                                {/* Homeland Selector Trigger */}
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        onHomelandButtonClick?.();
+                                        handleCloseDropdown();
+                                    }}
+                                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-between"
+                                >
+                                    <div className="flex items-center space-x-2">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <title>Homeland</title>
+                                            <path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3L2 12h3v8z" />
+                                        </svg>
+                                        <span>Homeland</span>
+                                    </div>
+                                    <span className="text-xs text-gray-500">
+                                        {homelandCountry ? homelandCountry.name : "Not set"}
+                                    </span>
+                                </button>
 
                                 <button
                                     type="button"

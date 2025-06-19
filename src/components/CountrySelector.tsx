@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 interface CountrySelectorProps {
     initialSelectedCountries?: Country[];
+    homelandCountry?: Country | null;
     onCountrySelect?: (country: Country) => void;
     onCountryDeselect?: (countryId: string) => void;
     onClearAll?: () => void;
@@ -13,6 +14,7 @@ interface CountrySelectorProps {
 
 export const CountrySelector: React.FC<CountrySelectorProps> = ({
     initialSelectedCountries = [],
+    homelandCountry,
     onCountrySelect,
     onCountryDeselect,
     onClearAll,
@@ -119,6 +121,10 @@ export const CountrySelector: React.FC<CountrySelectorProps> = ({
     const isCountrySelected = (countryAlpha3: string) => {
         return selectedCountries.some((c) => c.alpha3 === countryAlpha3);
     };
+
+    const isHomeland = (countryAlpha3: string) => {
+        return homelandCountry?.alpha3 === countryAlpha3;
+    };
     return (
         <div className={`w-80 ${className}`}>
             {/* Country Selector Panel */}
@@ -201,29 +207,53 @@ export const CountrySelector: React.FC<CountrySelectorProps> = ({
                         <div className="py-2">
                             {searchResults.map((country, index) => {
                                 const selected = isCountrySelected(country.alpha3);
+                                const homeland = isHomeland(country.alpha3);
                                 const isFocused = index === focusedIndex;
+                                const isDisabled = homeland;
+
                                 return (
                                     <button
                                         type="button"
                                         key={country.alpha3}
-                                        onClick={() => handleCountrySelect(country)}
+                                        onClick={() => !isDisabled && handleCountrySelect(country)}
                                         className={cn(
-                                            "w-full px-4 py-2 text-left transition-colors duration-150 flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed",
+                                            "w-full px-4 py-2 text-left transition-colors duration-150 flex items-center justify-between",
                                             {
-                                                "bg-yellow-50 border-l-4 border-yellow-400": selected,
-                                                "bg-blue-50 border-l-4 border-blue-400": isFocused,
-                                                "hover:bg-gray-50": !selected && !isFocused,
+                                                "bg-yellow-50 border-l-4 border-yellow-400": selected && !homeland,
+                                                "bg-blue-50 border-l-4 border-blue-400": homeland,
+                                                "bg-gray-50 border-l-4 border-gray-400":
+                                                    isFocused && !selected && !homeland,
+                                                "hover:bg-gray-50": !selected && !isFocused && !homeland,
+                                                "opacity-75 cursor-not-allowed": isDisabled,
+                                                "disabled:opacity-50 disabled:cursor-not-allowed": isLoading,
                                             },
                                         )}
-                                        disabled={isLoading}
+                                        disabled={isLoading || isDisabled}
                                         onMouseEnter={() => setFocusedIndex(index)}
                                         data-index={index}
+                                        title={homeland ? `${country.name} is your homeland` : undefined}
                                     >
                                         <div>
                                             <div className="font-medium text-gray-900">{country.name}</div>
                                             <div className="text-xs text-gray-500">{country.alpha3}</div>
                                         </div>
-                                        {selected && (
+                                        {homeland && (
+                                            <div className="text-blue-600">
+                                                <svg
+                                                    className="w-4 h-4"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <title>Homeland</title>
+                                                    <path
+                                                        fill="currentColor"
+                                                        d="M4 20v-9.375L2.2 12l-1.175-1.575L12 2l11 8.4l-1.2 1.6L12 4.5L6 9.1V18h3v2zm10.925 2L10.7 17.75l1.4-1.425l2.825 2.825L20.6 13.5l1.4 1.425z"
+                                                    />
+                                                </svg>
+                                            </div>
+                                        )}
+                                        {selected && !homeland && (
                                             <div className="text-yellow-600">
                                                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                                     <title>Selected</title>
@@ -235,7 +265,7 @@ export const CountrySelector: React.FC<CountrySelectorProps> = ({
                                                 </svg>
                                             </div>
                                         )}
-                                        {!selected && isFocused && (
+                                        {!selected && !homeland && isFocused && (
                                             <div className="text-blue-600">
                                                 <svg
                                                     className="w-4 h-4"

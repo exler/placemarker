@@ -9,7 +9,7 @@ export interface AuthUser {
     id: string;
     email: string;
     name?: string;
-    avatar?: string;
+    homeland_alpha3?: string; // ISO 3166-1 alpha-3 country code for homeland
     created: string;
     updated: string;
 }
@@ -37,7 +37,7 @@ class PocketbaseService {
                 id: authData.record.id,
                 email: authData.record.email,
                 name: authData.record.name,
-                avatar: authData.record.avatar,
+                homeland_alpha3: authData.record.homeland_alpha3,
                 created: authData.record.created,
                 updated: authData.record.updated,
             };
@@ -60,7 +60,7 @@ class PocketbaseService {
             id: pb.authStore.model.id,
             email: pb.authStore.model.email,
             name: pb.authStore.model.name,
-            avatar: pb.authStore.model.avatar,
+            homeland_alpha3: pb.authStore.model.homeland_alpha3,
             created: pb.authStore.model.created,
             updated: pb.authStore.model.updated,
         };
@@ -184,6 +184,70 @@ class PocketbaseService {
         } catch (error) {
             console.error("Failed to clear country selections:", error);
             throw new Error("Failed to clear country selections");
+        }
+    }
+
+    async setHomeland(country: Country): Promise<void> {
+        if (!this.isAuthenticated()) {
+            throw new Error("User must be authenticated to set homeland");
+        }
+
+        const user = this.getCurrentUser();
+        if (!user) {
+            throw new Error("No authenticated user found");
+        }
+
+        try {
+            // Update the user's homeland_alpha3 field
+            await pb.collection("users").update(user.id, {
+                homeland_alpha3: country.alpha3,
+            });
+
+            console.log(`Homeland set: ${country.name} (${country.alpha3})`);
+        } catch (error) {
+            console.error("Failed to set homeland:", error);
+            throw new Error("Failed to set homeland");
+        }
+    }
+
+    async getHomeland(): Promise<Country | null> {
+        if (!this.isAuthenticated()) {
+            return null;
+        }
+
+        const user = this.getCurrentUser();
+        if (!user || !user.homeland_alpha3) {
+            return null;
+        }
+
+        try {
+            const country = alpha3ToCountry(user.homeland_alpha3);
+            return country;
+        } catch (error) {
+            console.error("Failed to get homeland:", error);
+            return null;
+        }
+    }
+
+    async clearHomeland(): Promise<void> {
+        if (!this.isAuthenticated()) {
+            throw new Error("User must be authenticated to clear homeland");
+        }
+
+        const user = this.getCurrentUser();
+        if (!user) {
+            throw new Error("No authenticated user found");
+        }
+
+        try {
+            await pb.collection("users").update(user.id, {
+                homeland_alpha3: null,
+            });
+
+            console.log("Homeland cleared");
+        } catch (error) {
+            console.error("Failed to clear homeland:", error);
+            throw new Error("Failed to clear homeland");
         }
     }
 
