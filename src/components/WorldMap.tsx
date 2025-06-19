@@ -22,6 +22,14 @@ interface WorldMapProps {
      */
     initialZoom?: number;
     /**
+     * Min zoom level (0-24).
+     */
+    minZoom?: number;
+    /**
+     * Max zoom level (0-24).
+     */
+    maxZoom?: number;
+    /**
      * Initial center coordinates [longitude, latitude].
      */
     initialCenter?: [number, number];
@@ -97,6 +105,8 @@ export const WorldMap: React.FC<WorldMapProps> = ({
     width = defaultProps.width,
     height = defaultProps.height,
     initialZoom = defaultProps.initialZoom,
+    minZoom,
+    maxZoom,
     initialCenter = defaultProps.initialCenter,
     borderColor = defaultProps.borderColor,
     borderWidth = defaultProps.borderWidth,
@@ -142,6 +152,8 @@ export const WorldMap: React.FC<WorldMapProps> = ({
                 style: mapStyle,
                 center: initialCenter,
                 zoom: initialZoom,
+                minZoom: minZoom,
+                maxZoom: maxZoom,
                 projection: "mercator" as const,
                 attributionControl: true,
                 logoPosition: "bottom-right",
@@ -266,6 +278,8 @@ export const WorldMap: React.FC<WorldMapProps> = ({
         mapStyle,
         initialCenter,
         initialZoom,
+        minZoom,
+        maxZoom,
         borderColor,
         borderWidth,
         selectedCountryColor,

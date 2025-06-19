@@ -309,7 +309,7 @@ function Index() {
 
     // Arrays are compared by reference, so [0, 20] will create a new array each time the component renders
     // causing the useEffect in WorldMap to trigger and cause a blinking effect.
-    const initialCenter = useMemo<[number, number]>(() => [0, 20], []);
+    const initialCenter = useMemo<[number, number]>(() => [10, 20], []);
     const homelandCountries = useMemo(() => (homelandCountry ? [homelandCountry.alpha3] : []), [homelandCountry]);
 
     return (
@@ -352,7 +352,8 @@ function Index() {
                     accessToken={MAPBOX_ACCESS_TOKEN}
                     width="100%"
                     height="100%"
-                    initialZoom={2}
+                    initialZoom={3}
+                    minZoom={3}
                     initialCenter={initialCenter}
                     borderColor="#ffffff"
                     borderWidth={1.5}
