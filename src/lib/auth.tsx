@@ -9,6 +9,7 @@ interface AuthContextType {
     isAuthenticated: boolean;
     isLoading: boolean;
     login: (email: string, password: string) => Promise<void>;
+    loginWithGitHub: () => Promise<void>; // AIDEV-NOTE: GitHub OAuth2 authentication method
     logout: () => Promise<void>;
 }
 
@@ -79,6 +80,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(authUser);
     };
 
+    // AIDEV-NOTE: GitHub OAuth2 login method for new user registration and existing user authentication
+    const loginWithGitHub = async () => {
+        const authUser = await pocketbaseService.loginWithOAuth2("github");
+        setUser(authUser);
+    };
+
     const logout = async () => {
         try {
             await pocketbaseService.logout();
@@ -93,6 +100,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isAuthenticated: !!user && pocketbaseService.isAuthenticated(),
         isLoading,
         login,
+        loginWithGitHub, // AIDEV-NOTE: Include GitHub OAuth2 login in context value
         logout,
     };
 

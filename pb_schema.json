@@ -149,7 +149,7 @@
         "username": "",
         "avatarURL": ""
       },
-      "enabled": false
+      "enabled": true
     },
     "passwordAuth": {
       "enabled": true,

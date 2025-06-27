@@ -47,6 +47,25 @@ class PocketbaseService {
         }
     }
 
+    // AIDEV-NOTE: OAuth2 authentication for new user registration and existing user login
+    async loginWithOAuth2(provider: string): Promise<AuthUser> {
+        try {
+            const authData = await pb.collection("users").authWithOAuth2({ provider });
+
+            return {
+                id: authData.record.id,
+                email: authData.record.email,
+                name: authData.record.name,
+                homeland_alpha3: authData.record.homeland_alpha3,
+                created: authData.record.created,
+                updated: authData.record.updated,
+            };
+        } catch (error) {
+            console.error("GitHub OAuth login failed:", error);
+            throw new Error("GitHub authentication failed. Please try again.");
+        }
+    }
+
     async logout(): Promise<void> {
         pb.authStore.clear();
     }
