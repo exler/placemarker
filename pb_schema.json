@@ -187,7 +187,7 @@
   },
   {
     "id": "pbc_604324807",
-    "listRule": "profile.user.id = @request.auth.id",
+    "listRule": "profile.user.id = @request.auth.id || (profile.shared = true && @request.query.profile != \"\")",
     "viewRule": "profile.user.id = @request.auth.id || profile.shared = true",
     "createRule": "profile.user.id = @request.auth.id",
     "updateRule": "profile.user.id = @request.auth.id",
