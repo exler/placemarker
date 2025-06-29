@@ -56,7 +56,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                         id: model.id,
                         email: model.email,
                         name: model.name,
-                        homeland_alpha3: model.homeland_alpha3,
                         created: model.created,
                         updated: model.updated,
                     };

@@ -9,7 +9,6 @@ export interface AuthUser {
     id: string;
     email: string;
     name?: string;
-    homeland_alpha3?: string; // ISO 3166-1 alpha-3 country code for homeland
     created: string;
     updated: string;
 }
@@ -19,10 +18,20 @@ export interface LoginCredentials {
     password: string;
 }
 
+// Types for user profile record
+export interface UserProfileRecord {
+    id?: string;
+    user: string; // user ID
+    shared?: boolean;
+    homeland_alpha3?: string; // ISO 3166-1 alpha-3 country code for homeland
+    created?: string;
+    updated?: string;
+}
+
 // Types for Pocketbase country selection record
 export interface CountrySelectionRecord {
     id?: string;
-    user: string; // user ID
+    profile: string; // profile ID
     country_alpha3: string; // ISO 3166-1 alpha-3 country code
     created?: string;
     updated?: string;
@@ -33,14 +42,18 @@ class PocketbaseService {
         try {
             const authData = await pb.collection("users").authWithPassword(credentials.email, credentials.password);
 
-            return {
+            const authUser = {
                 id: authData.record.id,
                 email: authData.record.email,
                 name: authData.record.name,
-                homeland_alpha3: authData.record.homeland_alpha3,
                 created: authData.record.created,
                 updated: authData.record.updated,
             };
+
+            // Ensure user profile exists after login
+            await this.ensureUserProfile(authUser.id);
+
+            return authUser;
         } catch (error) {
             console.error("Login failed:", error);
             throw new Error("Invalid email or password");
@@ -52,14 +65,18 @@ class PocketbaseService {
         try {
             const authData = await pb.collection("users").authWithOAuth2({ provider });
 
-            return {
+            const authUser = {
                 id: authData.record.id,
                 email: authData.record.email,
                 name: authData.record.name,
-                homeland_alpha3: authData.record.homeland_alpha3,
                 created: authData.record.created,
                 updated: authData.record.updated,
             };
+
+            // Ensure user profile exists after OAuth login
+            await this.ensureUserProfile(authUser.id);
+
+            return authUser;
         } catch (error) {
             console.error("GitHub OAuth login failed:", error);
             throw new Error("GitHub authentication failed. Please try again.");
@@ -79,7 +96,6 @@ class PocketbaseService {
             id: pb.authStore.model.id,
             email: pb.authStore.model.email,
             name: pb.authStore.model.name,
-            homeland_alpha3: pb.authStore.model.homeland_alpha3,
             created: pb.authStore.model.created,
             updated: pb.authStore.model.updated,
         };
@@ -89,9 +105,36 @@ class PocketbaseService {
         return pb.authStore.isValid;
     }
 
-    async saveCountrySelection(country: Country): Promise<void> {
+    // AIDEV-NOTE: Ensures user profile exists, creates one if it doesn't
+    private async ensureUserProfile(userId: string): Promise<UserProfileRecord> {
+        try {
+            // Try to get existing profile
+            const existingProfiles = await pb.collection("user_profiles").getList(1, 1, {
+                filter: `user="${userId}"`,
+            });
+
+            if (existingProfiles.items.length > 0) {
+                return existingProfiles.items[0] as unknown as UserProfileRecord;
+            }
+
+            // Create new profile if it doesn't exist
+            const newProfile = await pb.collection("user_profiles").create({
+                user: userId,
+                shared: false,
+            });
+
+            console.log("Created new user profile");
+            return newProfile as unknown as UserProfileRecord;
+        } catch (error) {
+            console.error("Failed to ensure user profile:", error);
+            throw new Error("Failed to create user profile");
+        }
+    }
+
+    // AIDEV-NOTE: Get user profile (creates if doesn't exist)
+    async getUserProfile(): Promise<UserProfileRecord> {
         if (!this.isAuthenticated()) {
-            throw new Error("User must be authenticated to save country selections");
+            throw new Error("User must be authenticated to get profile");
         }
 
         const user = this.getCurrentUser();
@@ -99,16 +142,26 @@ class PocketbaseService {
             throw new Error("No authenticated user found");
         }
 
+        return await this.ensureUserProfile(user.id);
+    }
+
+    async saveCountrySelection(country: Country): Promise<void> {
+        if (!this.isAuthenticated()) {
+            throw new Error("User must be authenticated to save country selections");
+        }
+
         try {
-            // Check if this country is already selected by this user
+            const profile = await this.getUserProfile();
+
+            // Check if this country is already selected by this user's profile
             const existingRecords = await pb.collection("country_selections").getList(1, 1, {
-                filter: `user="${user.id}" && country_alpha3="${country.alpha3}"`,
+                filter: `profile="${profile.id}" && country_alpha3="${country.alpha3}"`,
             });
 
             if (existingRecords.items.length === 0) {
-                // Create new country selection record with only alpha-3
-                const record: Omit<CountrySelectionRecord, "id" | "created" | "updated"> = {
-                    user: user.id,
+                // Create new country selection record with profile reference
+                const record = {
+                    profile: profile.id as string,
                     country_alpha3: country.alpha3,
                 };
 
@@ -126,15 +179,12 @@ class PocketbaseService {
             throw new Error("User must be authenticated to remove country selections");
         }
 
-        const user = this.getCurrentUser();
-        if (!user) {
-            throw new Error("No authenticated user found");
-        }
-
         try {
+            const profile = await this.getUserProfile();
+
             // Find the record to delete
             const records = await pb.collection("country_selections").getList(1, 1, {
-                filter: `user="${user.id}" && country_alpha3="${countryAlpha3}"`,
+                filter: `profile="${profile.id}" && country_alpha3="${countryAlpha3}"`,
             });
 
             if (records.items.length > 0) {
@@ -152,14 +202,11 @@ class PocketbaseService {
             return [];
         }
 
-        const user = this.getCurrentUser();
-        if (!user) {
-            return [];
-        }
-
         try {
+            const profile = await this.getUserProfile();
+
             const records = await pb.collection("country_selections").getFullList({
-                filter: `user="${user.id}"`,
+                filter: `profile="${profile.id}"`,
                 sort: "-created",
             });
 
@@ -184,14 +231,11 @@ class PocketbaseService {
             throw new Error("User must be authenticated to clear country selections");
         }
 
-        const user = this.getCurrentUser();
-        if (!user) {
-            throw new Error("No authenticated user found");
-        }
-
         try {
+            const profile = await this.getUserProfile();
+
             const records = await pb.collection("country_selections").getFullList({
-                filter: `user="${user.id}"`,
+                filter: `profile="${profile.id}"`,
             });
 
             // Delete all records
@@ -211,14 +255,11 @@ class PocketbaseService {
             throw new Error("User must be authenticated to set homeland");
         }
 
-        const user = this.getCurrentUser();
-        if (!user) {
-            throw new Error("No authenticated user found");
-        }
-
         try {
-            // Update the user's homeland_alpha3 field
-            await pb.collection("users").update(user.id, {
+            const profile = await this.getUserProfile();
+
+            // Update the user profile's homeland_alpha3 field
+            await pb.collection("user_profiles").update(profile.id as string, {
                 homeland_alpha3: country.alpha3,
             });
 
@@ -234,13 +275,14 @@ class PocketbaseService {
             return null;
         }
 
-        const user = this.getCurrentUser();
-        if (!user || !user.homeland_alpha3) {
-            return null;
-        }
-
         try {
-            const country = alpha3ToCountry(user.homeland_alpha3);
+            const profile = await this.getUserProfile();
+
+            if (!profile.homeland_alpha3) {
+                return null;
+            }
+
+            const country = alpha3ToCountry(profile.homeland_alpha3);
             return country;
         } catch (error) {
             console.error("Failed to get homeland:", error);
@@ -253,13 +295,10 @@ class PocketbaseService {
             throw new Error("User must be authenticated to clear homeland");
         }
 
-        const user = this.getCurrentUser();
-        if (!user) {
-            throw new Error("No authenticated user found");
-        }
-
         try {
-            await pb.collection("users").update(user.id, {
+            const profile = await this.getUserProfile();
+
+            await pb.collection("user_profiles").update(profile.id as string, {
                 homeland_alpha3: null,
             });
 

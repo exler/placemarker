@@ -94,20 +94,6 @@
         "type": "text"
       },
       {
-        "autogeneratePattern": "",
-        "hidden": false,
-        "id": "text2043826619",
-        "max": 3,
-        "min": 3,
-        "name": "homeland_alpha3",
-        "pattern": "^[A-Z]{3}$",
-        "presentable": false,
-        "primaryKey": false,
-        "required": false,
-        "system": false,
-        "type": "text"
-      },
-      {
         "hidden": false,
         "id": "autodate2990389176",
         "name": "created",
@@ -201,12 +187,89 @@
   },
   {
     "id": "pbc_604324807",
-    "listRule": "user = @request.auth.id",
-    "viewRule": "user = @request.auth.id",
-    "createRule": "user = @request.auth.id",
-    "updateRule": "user = @request.auth.id",
-    "deleteRule": "user = @request.auth.id",
+    "listRule": "profile.user.id = @request.auth.id",
+    "viewRule": "profile.user.id = @request.auth.id || profile.shared = true",
+    "createRule": "profile.user.id = @request.auth.id",
+    "updateRule": "profile.user.id = @request.auth.id",
+    "deleteRule": "profile.user.id = @request.auth.id",
     "name": "country_selections",
+    "type": "base",
+    "fields": [
+      {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "hidden": false,
+        "id": "text3208210256",
+        "max": 15,
+        "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "id": "text2149387671",
+        "max": 3,
+        "min": 3,
+        "name": "country_alpha3",
+        "pattern": "^[A-Z]{3}$",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "cascadeDelete": true,
+        "collectionId": "pbc_2190040129",
+        "hidden": false,
+        "id": "relation2170006031",
+        "maxSelect": 1,
+        "minSelect": 0,
+        "name": "profile",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation"
+      },
+      {
+        "hidden": false,
+        "id": "autodate2990389176",
+        "name": "created",
+        "onCreate": true,
+        "onUpdate": false,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      },
+      {
+        "hidden": false,
+        "id": "autodate3332085495",
+        "name": "updated",
+        "onCreate": true,
+        "onUpdate": true,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      }
+    ],
+    "indexes": [
+      "CREATE INDEX `idx_joaI0rE35M` ON `country_selections` (`profile`)"
+    ],
+    "system": false
+  },
+  {
+    "id": "pbc_2190040129",
+    "listRule": "user.id = @request.auth.id",
+    "viewRule": "user.id = @request.auth.id || shared = true",
+    "createRule": "user.id = @request.auth.id",
+    "updateRule": "user.id = @request.auth.id",
+    "deleteRule": "user.id = @request.auth.id",
+    "name": "user_profiles",
     "type": "base",
     "fields": [
       {
@@ -237,16 +300,25 @@
         "type": "relation"
       },
       {
+        "hidden": false,
+        "id": "bool328004795",
+        "name": "shared",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "bool"
+      },
+      {
         "autogeneratePattern": "",
         "hidden": false,
-        "id": "text2149387671",
+        "id": "text2043826619",
         "max": 3,
         "min": 3,
-        "name": "country_alpha3",
+        "name": "homeland_alpha3",
         "pattern": "^[A-Z]{3}$",
         "presentable": false,
         "primaryKey": false,
-        "required": true,
+        "required": false,
         "system": false,
         "type": "text"
       },
@@ -272,7 +344,7 @@
       }
     ],
     "indexes": [
-      "CREATE INDEX `idx_joaI0rE35M` ON `country_selections` (`user`)"
+      "CREATE UNIQUE INDEX `idx_YMGL6eZJiS` ON `user_profiles` (`user`)"
     ],
     "system": false
   }
