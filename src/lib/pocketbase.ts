@@ -24,6 +24,7 @@ export interface UserProfileRecord {
     user: string; // user ID
     shared?: boolean;
     homeland_alpha3?: string; // ISO 3166-1 alpha-3 country code for homeland
+    display_name?: string; // Display name from user's name field
     created?: string;
     updated?: string;
 }
@@ -307,6 +308,90 @@ class PocketbaseService {
             console.error("Failed to clear homeland:", error);
             throw new Error("Failed to clear homeland");
         }
+    }
+
+    // AIDEV-NOTE: Share map functionality - toggle sharing and get share status
+    async toggleMapSharing(): Promise<boolean> {
+        if (!this.isAuthenticated()) {
+            throw new Error("User must be authenticated to toggle map sharing");
+        }
+
+        try {
+            const profile = await this.getUserProfile();
+            const newSharedValue = !profile.shared;
+
+            await pb.collection("user_profiles").update(profile.id as string, {
+                shared: newSharedValue,
+            });
+
+            console.log(`Map sharing ${newSharedValue ? "enabled" : "disabled"}`);
+            return newSharedValue;
+        } catch (error) {
+            console.error("Failed to toggle map sharing:", error);
+            throw new Error("Failed to toggle map sharing");
+        }
+    }
+
+    async getMapShareStatus(): Promise<boolean> {
+        if (!this.isAuthenticated()) {
+            return false;
+        }
+
+        try {
+            const profile = await this.getUserProfile();
+            return profile.shared || false;
+        } catch (error) {
+            console.error("Failed to get map share status:", error);
+            return false;
+        }
+    }
+
+    // AIDEV-NOTE: Get shared profile data by user ID for public viewing
+    async getSharedProfile(userId: string): Promise<{ profile: UserProfileRecord; countries: Country[] } | null> {
+        try {
+            // Get the user profile with expanded user relation - this will only work if it's shared due to view rules
+            const profiles = await pb.collection("user_profiles").getList(1, 1, {
+                filter: `user="${userId}" && shared=true`,
+                expand: "user", // Expand the user relation to get user details
+            });
+
+            if (profiles.items.length === 0) {
+                return null; // Profile not found or not shared
+            }
+
+            const profileRecord = profiles.items[0];
+            const profile = profileRecord as unknown as UserProfileRecord;
+
+            // Set display_name from expanded user data if available
+            if (profileRecord.expand?.user?.name) {
+                profile.display_name = profileRecord.expand.user.name;
+            }
+
+            // Get country selections for this profile
+            const countryRecords = await pb.collection("country_selections").getFullList({
+                filter: `profile="${profile.id}"`,
+                sort: "-created",
+            });
+
+            // Convert to Country objects
+            const countries: Country[] = [];
+            for (const record of countryRecords) {
+                const country = alpha3ToCountry(record.country_alpha3);
+                if (country) {
+                    countries.push(country);
+                }
+            }
+
+            return { profile, countries };
+        } catch (error) {
+            console.error("Failed to get shared profile:", error);
+            return null;
+        }
+    }
+
+    generateShareUrl(userId: string): string {
+        const baseUrl = window.location.origin;
+        return `${baseUrl}/shared/${userId}`;
     }
 
     onChange(callback: (token: string, model: unknown) => void) {

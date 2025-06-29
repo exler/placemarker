@@ -12,12 +12,19 @@
 
 import { Route as rootRoute } from './routes/__root'
 import { Route as IndexImport } from './routes/index'
+import { Route as SharedUserIdImport } from './routes/shared.$userId'
 
 // Create/Update Routes
 
 const IndexRoute = IndexImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const SharedUserIdRoute = SharedUserIdImport.update({
+  id: '/shared/$userId',
+  path: '/shared/$userId',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -32,6 +39,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexImport
       parentRoute: typeof rootRoute
     }
+    '/shared/$userId': {
+      id: '/shared/$userId'
+      path: '/shared/$userId'
+      fullPath: '/shared/$userId'
+      preLoaderRoute: typeof SharedUserIdImport
+      parentRoute: typeof rootRoute
+    }
   }
 }
 
@@ -39,32 +53,37 @@ declare module '@tanstack/react-router' {
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/shared/$userId': typeof SharedUserIdRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/shared/$userId': typeof SharedUserIdRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
+  '/shared/$userId': typeof SharedUserIdRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/shared/$userId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/shared/$userId'
+  id: '__root__' | '/' | '/shared/$userId'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SharedUserIdRoute: typeof SharedUserIdRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SharedUserIdRoute: SharedUserIdRoute,
 }
 
 export const routeTree = rootRoute
@@ -77,11 +96,15 @@ export const routeTree = rootRoute
     "__root__": {
       "filePath": "__root.tsx",
       "children": [
-        "/"
+        "/",
+        "/shared/$userId"
       ]
     },
     "/": {
       "filePath": "index.tsx"
+    },
+    "/shared/$userId": {
+      "filePath": "shared.$userId.tsx"
     }
   }
 }
