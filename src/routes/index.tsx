@@ -1,7 +1,7 @@
 import PlacemarkerLogo from "@/assets/placemarker_logo.png";
-import AuthButton from "@/components/AuthButton";
 import CountrySelector from "@/components/CountrySelector";
 import HomelandSelector from "@/components/HomelandSelector";
+import UserMenu from "@/components/UserMenu";
 import WorldMap from "@/components/WorldMap";
 import { useAuth } from "@/lib/auth";
 import type { Country } from "@/lib/countries";
@@ -318,11 +318,8 @@ function Index() {
                 <img src={PlacemarkerLogo} alt="Placemarker" className="h-12 w-auto" />
             </div>
 
-            {/* Authentication Button - Top Left */}
-            <AuthButton
-                homelandCountry={homelandCountry}
-                onHomelandButtonClick={() => setIsHomelandSelectorOpen(true)}
-            />
+            {/* User Menu - Top Left */}
+            <UserMenu homelandCountry={homelandCountry} onHomelandButtonClick={() => setIsHomelandSelectorOpen(true)} />
 
             {/* Country Selector Widget - Top Right */}
             <div className="absolute top-4 right-4 z-10">

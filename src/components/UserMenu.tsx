@@ -5,12 +5,12 @@ import type React from "react";
 import { useEffect, useState } from "react";
 import AuthModal from "./AuthModal";
 
-interface AuthButtonProps {
+interface UserMenuProps {
     homelandCountry?: Country | null;
     onHomelandButtonClick?: () => void;
 }
 
-export const AuthButton: React.FC<AuthButtonProps> = ({ homelandCountry, onHomelandButtonClick }) => {
+export const UserMenu: React.FC<UserMenuProps> = ({ homelandCountry, onHomelandButtonClick }) => {
     const { user, isAuthenticated, logout } = useAuth();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -284,4 +284,4 @@ export const AuthButton: React.FC<AuthButtonProps> = ({ homelandCountry, onHomel
     );
 };
 
-export default AuthButton;
+export default UserMenu;
