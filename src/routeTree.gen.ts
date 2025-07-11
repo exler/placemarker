@@ -12,7 +12,7 @@
 
 import { Route as rootRoute } from './routes/__root'
 import { Route as IndexImport } from './routes/index'
-import { Route as SharedUserIdImport } from './routes/shared.$userId'
+import { Route as SharedProfileIdImport } from './routes/shared.$profileId'
 
 // Create/Update Routes
 
@@ -22,9 +22,9 @@ const IndexRoute = IndexImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
-const SharedUserIdRoute = SharedUserIdImport.update({
-  id: '/shared/$userId',
-  path: '/shared/$userId',
+const SharedProfileIdRoute = SharedProfileIdImport.update({
+  id: '/shared/$profileId',
+  path: '/shared/$profileId',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -39,11 +39,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexImport
       parentRoute: typeof rootRoute
     }
-    '/shared/$userId': {
-      id: '/shared/$userId'
-      path: '/shared/$userId'
-      fullPath: '/shared/$userId'
-      preLoaderRoute: typeof SharedUserIdImport
+    '/shared/$profileId': {
+      id: '/shared/$profileId'
+      path: '/shared/$profileId'
+      fullPath: '/shared/$profileId'
+      preLoaderRoute: typeof SharedProfileIdImport
       parentRoute: typeof rootRoute
     }
   }
@@ -53,37 +53,37 @@ declare module '@tanstack/react-router' {
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/shared/$userId': typeof SharedUserIdRoute
+  '/shared/$profileId': typeof SharedProfileIdRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/shared/$userId': typeof SharedUserIdRoute
+  '/shared/$profileId': typeof SharedProfileIdRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
-  '/shared/$userId': typeof SharedUserIdRoute
+  '/shared/$profileId': typeof SharedProfileIdRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/shared/$userId'
+  fullPaths: '/' | '/shared/$profileId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/shared/$userId'
-  id: '__root__' | '/' | '/shared/$userId'
+  to: '/' | '/shared/$profileId'
+  id: '__root__' | '/' | '/shared/$profileId'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  SharedUserIdRoute: typeof SharedUserIdRoute
+  SharedProfileIdRoute: typeof SharedProfileIdRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  SharedUserIdRoute: SharedUserIdRoute,
+  SharedProfileIdRoute: SharedProfileIdRoute,
 }
 
 export const routeTree = rootRoute
@@ -97,14 +97,14 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
-        "/shared/$userId"
+        "/shared/$profileId"
       ]
     },
     "/": {
       "filePath": "index.tsx"
     },
-    "/shared/$userId": {
-      "filePath": "shared.$userId.tsx"
+    "/shared/$profileId": {
+      "filePath": "shared.$profileId.tsx"
     }
   }
 }

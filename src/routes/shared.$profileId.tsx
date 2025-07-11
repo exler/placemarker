@@ -6,12 +6,12 @@ import { pocketbaseService } from "@/lib/pocketbase";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
-export const Route = createFileRoute("/shared/$userId")({
+export const Route = createFileRoute("/shared/$profileId")({
     component: SharedProfile,
 });
 
 function SharedProfile() {
-    const { userId } = Route.useParams();
+    const { profileId } = Route.useParams();
     const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 
     const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
@@ -34,7 +34,7 @@ function SharedProfile() {
 
     const loadSharedProfile = async () => {
         try {
-            const sharedData = await pocketbaseService.getSharedProfile(userId);
+            const sharedData = await pocketbaseService.getSharedProfile(profileId);
 
             if (!sharedData) {
                 setIsNotFound(true);

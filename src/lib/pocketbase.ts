@@ -347,19 +347,13 @@ class PocketbaseService {
     }
 
     // AIDEV-NOTE: Get shared profile data by user ID for public viewing
-    async getSharedProfile(userId: string): Promise<{ profile: UserProfileRecord; countries: Country[] } | null> {
+    async getSharedProfile(profileId: string): Promise<{ profile: UserProfileRecord; countries: Country[] } | null> {
         try {
             // Get the user profile with expanded user relation - this will only work if it's shared due to view rules
-            const profiles = await pb.collection("user_profiles").getList(1, 1, {
-                filter: `user="${userId}" && shared=true`,
+            const profileRecord = await pb.collection("user_profiles").getOne(profileId, {
                 expand: "user", // Expand the user relation to get user details
             });
 
-            if (profiles.items.length === 0) {
-                return null; // Profile not found or not shared
-            }
-
-            const profileRecord = profiles.items[0];
             const profile = profileRecord as unknown as UserProfileRecord;
 
             // Set display_name from expanded user data if available
@@ -389,9 +383,9 @@ class PocketbaseService {
         }
     }
 
-    generateShareUrl(userId: string): string {
+    generateShareUrl(profileId: string): string {
         const baseUrl = window.location.origin;
-        return `${baseUrl}/shared/${userId}`;
+        return `${baseUrl}/shared/${profileId}`;
     }
 
     onChange(callback: (token: string, model: unknown) => void) {

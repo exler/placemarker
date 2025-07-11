@@ -63,7 +63,8 @@ export const UserMenu: React.FC<UserMenuProps> = ({ homelandCountry, onHomelandB
 
             if (newShareStatus) {
                 // Copy share URL to clipboard
-                const shareUrl = pocketbaseService.generateShareUrl(user.id);
+                const profile = await pocketbaseService.getUserProfile();
+                const shareUrl = pocketbaseService.generateShareUrl(profile.id as string);
                 await navigator.clipboard.writeText(shareUrl);
 
                 // You could show a toast notification here
@@ -77,13 +78,13 @@ export const UserMenu: React.FC<UserMenuProps> = ({ homelandCountry, onHomelandB
         }
     };
 
-    // AIDEV-NOTE: Copy share link functionality for when user wants to share their map URL
     const handleCopyShareLink = async () => {
         if (!user) return;
 
         setIsCopyingLink(true);
         try {
-            const shareUrl = pocketbaseService.generateShareUrl(user.id);
+            const profile = await pocketbaseService.getUserProfile();
+            const shareUrl = pocketbaseService.generateShareUrl(profile.id as string);
             await navigator.clipboard.writeText(shareUrl);
 
             // You could show a toast notification here
