@@ -1,5 +1,6 @@
 import PlacemarkerLogo from "@/assets/placemarker_logo.png";
 import CountrySelector from "@/components/CountrySelector";
+import HelpModal from "@/components/HelpModal";
 import HomelandSelector from "@/components/HomelandSelector";
 import UserMenu from "@/components/UserMenu";
 import WorldMap from "@/components/WorldMap";
@@ -21,9 +22,12 @@ function Index() {
     const [initialCountries, setInitialCountries] = useState<Country[]>([]);
     const [homelandCountry, setHomelandCountry] = useState<Country | null>(null);
     const [isHomelandSelectorOpen, setIsHomelandSelectorOpen] = useState(false);
+    const [isHelpModalOpen, setIsHelpModalOpen] = useState(false); // AIDEV-NOTE: Help modal state for first-time users
     const [isInitialized, setIsInitialized] = useState(false);
 
-    const { isAuthenticated } = useAuth(); // Initialize and load selected countries from IndexedDB/Pocketbase
+    const { isAuthenticated } = useAuth();
+
+    // Initialize and load selected countries from IndexedDB/Pocketbase
     useEffect(() => {
         const loadSelectedCountries = async () => {
             try {
@@ -31,7 +35,6 @@ function Index() {
                 await userSettingsStorage.init();
 
                 const stored = await countryStorage.getSelectedCountries();
-                const storedHomeland = await userSettingsStorage.getHomeland();
 
                 // Convert SelectedCountry[] to Country[] for the component
                 const countries: Country[] = stored.map((sc) => ({
@@ -42,13 +45,6 @@ function Index() {
                 setInitialCountries(countries);
                 setSelectedCountries(stored.map((country) => country.alpha3));
 
-                if (storedHomeland) {
-                    setHomelandCountry({
-                        name: storedHomeland.name,
-                        alpha3: storedHomeland.alpha3,
-                    });
-                }
-
                 setIsInitialized(true);
             } catch (error) {
                 console.error("Failed to load selected countries:", error);
@@ -58,6 +54,24 @@ function Index() {
 
         loadSelectedCountries();
     }, []);
+
+    // AIDEV-NOTE: Check if user is seeing the app for the first time and show help modal
+    useEffect(() => {
+        const checkFirstTimeUser = async () => {
+            if (isInitialized) {
+                try {
+                    const hasSeenWelcome = await userSettingsStorage.hasSeenWelcomeModal();
+                    if (!hasSeenWelcome) {
+                        setIsHelpModalOpen(true);
+                    }
+                } catch (error) {
+                    console.error("Failed to check welcome modal status:", error);
+                }
+            }
+        };
+
+        checkFirstTimeUser();
+    }, [isInitialized]);
 
     // Sync with Pocketbase when user authentication state changes
     useEffect(() => {
@@ -78,7 +92,6 @@ function Index() {
 
                     // Get current local selections
                     const localSelections = await countryStorage.getSelectedCountries();
-                    const localHomeland = await userSettingsStorage.getHomeland();
 
                     // Create a map of all unique countries (prefer Pocketbase data for conflicts)
                     const countryMap = new Map<string, SelectedCountry>();
@@ -95,21 +108,8 @@ function Index() {
 
                     const mergedSelections = Array.from(countryMap.values());
 
-                    // Handle homeland sync
-                    const syncedHomeland = pocketbaseHomeland || localHomeland;
-                    if (syncedHomeland) {
-                        if (
-                            pocketbaseHomeland &&
-                            (!localHomeland || localHomeland.alpha3 !== pocketbaseHomeland.alpha3)
-                        ) {
-                            // PocketBase has different homeland, update local
-                            await userSettingsStorage.setHomeland(pocketbaseHomeland);
-                        } else if (localHomeland && !pocketbaseHomeland) {
-                            // Local has homeland but PocketBase doesn't, sync to PocketBase
-                            await pocketbaseService.setHomeland(localHomeland);
-                        }
-                        setHomelandCountry(syncedHomeland);
-                    }
+                    // Handle homeland state
+                    setHomelandCountry(pocketbaseHomeland);
 
                     // Update component state
                     const countries: Country[] = mergedSelections.map((sc) => ({
@@ -142,7 +142,6 @@ function Index() {
             } else if (!isAuthenticated) {
                 // User logged out, clear homeland
                 setHomelandCountry(null);
-                await userSettingsStorage.clearHomeland();
             }
         };
 
@@ -249,7 +248,6 @@ function Index() {
             try {
                 // Set as homeland
                 setHomelandCountry(country);
-                await userSettingsStorage.setHomeland(country);
 
                 // Also save to Pocketbase if authenticated
                 if (isAuthenticated) {
@@ -288,8 +286,7 @@ function Index() {
 
     const handleHomelandClear = useCallback(async () => {
         try {
-            // Clear from local storage
-            await userSettingsStorage.clearHomeland();
+            // Clear state
             setHomelandCountry(null);
 
             // Also clear from Pocketbase if authenticated
@@ -307,15 +304,52 @@ function Index() {
         }
     }, [isAuthenticated]);
 
+    // AIDEV-NOTE: Handle help modal close and mark as seen for first-time users
+    const handleHelpModalClose = useCallback(async () => {
+        try {
+            setIsHelpModalOpen(false);
+            await userSettingsStorage.markWelcomeModalAsSeen();
+        } catch (error) {
+            console.error("Failed to mark welcome modal as seen:", error);
+        }
+    }, []);
+
+    const handleHelpModalOpen = useCallback(() => {
+        setIsHelpModalOpen(true);
+    }, []);
+
     // Arrays are compared by reference, so [0, 20] will create a new array each time the component renders
     // causing the useEffect in WorldMap to trigger and cause a blinking effect.
     const initialCenter = useMemo<[number, number]>(() => [10, 20], []);
 
     return (
         <div className="relative w-full h-screen overflow-hidden bg-gradient-to-br from-blue-900 to-blue-700 dark:from-gray-900 dark:to-gray-800">
-            {/* Logo - Bottom Left */}
-            <div className="absolute bottom-4 left-4 z-20">
+            {/* Logo and Help Button - Bottom Left */}
+            <div className="absolute bottom-4 left-4 z-20 flex items-center gap-3">
                 <img src={PlacemarkerLogo} alt="Placemarker" className="h-12 w-auto" />
+                <button
+                    type="button"
+                    onClick={handleHelpModalOpen}
+                    className="w-8 h-8 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:text-gray-200 transition-all duration-200"
+                    aria-label="Show help"
+                    title="Help"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        aria-hidden="true"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                    </svg>
+                </button>
             </div>
 
             {/* User Menu - Top Left */}
@@ -342,6 +376,9 @@ function Index() {
                 />
             )}
 
+            {/* Help Modal - AIDEV-NOTE: For first-time users */}
+            {isHelpModalOpen && <HelpModal onClose={handleHelpModalClose} />}
+
             {/* World Map */}
             <div className="absolute inset-0">
                 <WorldMap
@@ -365,3 +402,5 @@ function Index() {
         </div>
     );
 }
+
+export default Index;

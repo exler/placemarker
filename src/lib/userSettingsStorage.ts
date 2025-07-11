@@ -6,6 +6,7 @@ export interface UserSettings {
         alpha3: string;
         setAt: Date;
     };
+    hasSeenWelcomeModal?: boolean; // AIDEV-NOTE: Track if user has seen the first-time welcome modal
     updatedAt: Date;
 }
 
@@ -97,35 +98,16 @@ class UserSettingsStorageService {
         });
     }
 
-    async setHomeland(country: { name: string; alpha3: string }): Promise<void> {
+    // Public methods for managing welcome modal setting
+    async hasSeenWelcomeModal(): Promise<boolean> {
         const settings = await this.getUserSettings();
-        settings.homelandCountry = {
-            name: country.name,
-            alpha3: country.alpha3,
-            setAt: new Date(),
-        };
+        return settings.hasSeenWelcomeModal ?? false;
+    }
+
+    async markWelcomeModalAsSeen(): Promise<void> {
+        const settings = await this.getUserSettings();
+        settings.hasSeenWelcomeModal = true;
         await this.saveUserSettings(settings);
-    }
-
-    async getHomeland(): Promise<{ name: string; alpha3: string } | null> {
-        const settings = await this.getUserSettings();
-        return settings.homelandCountry
-            ? {
-                  name: settings.homelandCountry.name,
-                  alpha3: settings.homelandCountry.alpha3,
-              }
-            : null;
-    }
-
-    async clearHomeland(): Promise<void> {
-        const settings = await this.getUserSettings();
-        settings.homelandCountry = undefined;
-        await this.saveUserSettings(settings);
-    }
-
-    async isHomeland(countryAlpha3: string): Promise<boolean> {
-        const settings = await this.getUserSettings();
-        return settings.homelandCountry?.alpha3 === countryAlpha3;
     }
 }
 
