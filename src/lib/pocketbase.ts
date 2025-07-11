@@ -112,6 +112,7 @@ class PocketbaseService {
             // Try to get existing profile
             const existingProfiles = await pb.collection("user_profiles").getList(1, 1, {
                 filter: `user="${userId}"`,
+                requestKey: null,
             });
 
             if (existingProfiles.items.length > 0) {
