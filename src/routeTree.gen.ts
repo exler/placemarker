@@ -8,65 +8,34 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-// Import Routes
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as SharedProfileIdRouteImport } from './routes/shared.$profileId'
 
-import { Route as rootRoute } from './routes/__root'
-import { Route as IndexImport } from './routes/index'
-import { Route as SharedProfileIdImport } from './routes/shared.$profileId'
-
-// Create/Update Routes
-
-const IndexRoute = IndexImport.update({
+const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const SharedProfileIdRoute = SharedProfileIdImport.update({
+const SharedProfileIdRoute = SharedProfileIdRouteImport.update({
   id: '/shared/$profileId',
   path: '/shared/$profileId',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-// Populate the FileRoutesByPath interface
-
-declare module '@tanstack/react-router' {
-  interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexImport
-      parentRoute: typeof rootRoute
-    }
-    '/shared/$profileId': {
-      id: '/shared/$profileId'
-      path: '/shared/$profileId'
-      fullPath: '/shared/$profileId'
-      preLoaderRoute: typeof SharedProfileIdImport
-      parentRoute: typeof rootRoute
-    }
-  }
-}
-
-// Create and export the route tree
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/shared/$profileId': typeof SharedProfileIdRoute
 }
-
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/shared/$profileId': typeof SharedProfileIdRoute
 }
-
 export interface FileRoutesById {
-  __root__: typeof rootRoute
+  __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/shared/$profileId': typeof SharedProfileIdRoute
 }
-
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths: '/' | '/shared/$profileId'
@@ -75,37 +44,34 @@ export interface FileRouteTypes {
   id: '__root__' | '/' | '/shared/$profileId'
   fileRoutesById: FileRoutesById
 }
-
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SharedProfileIdRoute: typeof SharedProfileIdRoute
+}
+
+declare module '@tanstack/react-router' {
+  interface FileRoutesByPath {
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shared/$profileId': {
+      id: '/shared/$profileId'
+      path: '/shared/$profileId'
+      fullPath: '/shared/$profileId'
+      preLoaderRoute: typeof SharedProfileIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+  }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SharedProfileIdRoute: SharedProfileIdRoute,
 }
-
-export const routeTree = rootRoute
+export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-/* ROUTE_MANIFEST_START
-{
-  "routes": {
-    "__root__": {
-      "filePath": "__root.tsx",
-      "children": [
-        "/",
-        "/shared/$profileId"
-      ]
-    },
-    "/": {
-      "filePath": "index.tsx"
-    },
-    "/shared/$profileId": {
-      "filePath": "shared.$profileId.tsx"
-    }
-  }
-}
-ROUTE_MANIFEST_END */
