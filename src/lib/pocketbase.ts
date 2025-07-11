@@ -52,7 +52,7 @@ class PocketbaseService {
             };
 
             // Ensure user profile exists after login
-            await this.ensureUserProfile(authUser.id);
+            await this.ensureUserProfile(authUser);
 
             return authUser;
         } catch (error) {
@@ -75,7 +75,7 @@ class PocketbaseService {
             };
 
             // Ensure user profile exists after OAuth login
-            await this.ensureUserProfile(authUser.id);
+            await this.ensureUserProfile(authUser);
 
             return authUser;
         } catch (error) {
@@ -107,11 +107,11 @@ class PocketbaseService {
     }
 
     // AIDEV-NOTE: Ensures user profile exists, creates one if it doesn't
-    private async ensureUserProfile(userId: string): Promise<UserProfileRecord> {
+    private async ensureUserProfile(user: AuthUser): Promise<UserProfileRecord> {
         try {
             // Try to get existing profile
             const existingProfiles = await pb.collection("user_profiles").getList(1, 1, {
-                filter: `user="${userId}"`,
+                filter: `user="${user.id}"`,
                 requestKey: null,
             });
 
@@ -121,7 +121,8 @@ class PocketbaseService {
 
             // Create new profile if it doesn't exist
             const newProfile = await pb.collection("user_profiles").create({
-                user: userId,
+                user: user.id,
+                display_name: user.name || "",
                 shared: false,
             });
 
@@ -144,7 +145,7 @@ class PocketbaseService {
             throw new Error("No authenticated user found");
         }
 
-        return await this.ensureUserProfile(user.id);
+        return await this.ensureUserProfile(user);
     }
 
     async saveCountrySelection(country: Country): Promise<void> {
