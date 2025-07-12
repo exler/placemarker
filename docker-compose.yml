@@ -17,7 +17,7 @@ services:
             - placemarker
 
     pocketbase:
-        image: elestio/pocketbase:v0.28.3
+        image: elestio/pocketbase:v0.28.4
         restart: unless-stopped
         ports:
             - "8090:8090"
