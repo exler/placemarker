@@ -1,5 +1,5 @@
-import { type Country, alpha3ToCountry } from "@/lib/countries";
 import PocketBase from "pocketbase";
+import { alpha3ToCountry, type Country } from "@/lib/countries";
 
 // Initialize PocketBase instance
 export const pb = new PocketBase(import.meta.env.VITE_POCKETBASE_URL);

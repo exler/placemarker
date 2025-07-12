@@ -1,15 +1,15 @@
 import type React from "react";
 import { createContext, useContext, useEffect, useState } from "react";
-import type { AuthUser } from "./pocketbase";
+import type { AuthUser, AuthUser as PocketBaseAuthModel } from "./pocketbase";
 import { pocketbaseService } from "./pocketbase";
-import type { AuthUser as PocketBaseAuthModel } from "./pocketbase";
 
 interface AuthContextType {
     user: AuthUser | null;
     isAuthenticated: boolean;
     isLoading: boolean;
     login: (email: string, password: string) => Promise<void>;
-    loginWithGitHub: () => Promise<void>; // AIDEV-NOTE: GitHub OAuth2 authentication method
+    loginWithGitHub: () => Promise<void>;
+    loginWithGoogle: () => Promise<void>;
     logout: () => Promise<void>;
 }
 
@@ -79,9 +79,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(authUser);
     };
 
-    // AIDEV-NOTE: GitHub OAuth2 login method for new user registration and existing user authentication
     const loginWithGitHub = async () => {
         const authUser = await pocketbaseService.loginWithOAuth2("github");
+        setUser(authUser);
+    };
+
+    const loginWithGoogle = async () => {
+        const authUser = await pocketbaseService.loginWithOAuth2("google");
         setUser(authUser);
     };
 
@@ -99,7 +103,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isAuthenticated: !!user && pocketbaseService.isAuthenticated(),
         isLoading,
         login,
-        loginWithGitHub, // AIDEV-NOTE: Include GitHub OAuth2 login in context value
+        loginWithGitHub,
+        loginWithGoogle,
         logout,
     };
 
