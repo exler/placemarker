@@ -1,16 +1,23 @@
+import type React from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import type { Country } from "@/lib/countries";
 import { pocketbaseService } from "@/lib/pocketbase";
-import type React from "react";
-import { useEffect, useState } from "react";
 import AuthModal from "./AuthModal";
 
 interface UserMenuProps {
     homelandCountry?: Country | null;
     onHomelandButtonClick?: () => void;
+    showCountryNames?: boolean;
+    onToggleCountryNames?: (show: boolean) => void;
 }
 
-export const UserMenu: React.FC<UserMenuProps> = ({ homelandCountry, onHomelandButtonClick }) => {
+export const UserMenu: React.FC<UserMenuProps> = ({
+    homelandCountry,
+    onHomelandButtonClick,
+    showCountryNames = false,
+    onToggleCountryNames,
+}) => {
     const { user, isAuthenticated, logout } = useAuth();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -195,6 +202,32 @@ export const UserMenu: React.FC<UserMenuProps> = ({ homelandCountry, onHomelandB
                                     </div>
                                     <span className="text-xs text-gray-500">
                                         {homelandCountry ? homelandCountry.name : "Not set"}
+                                    </span>
+                                </button>
+
+                                {/* Country Names Toggle */}
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        onToggleCountryNames?.(!showCountryNames);
+                                        handleCloseDropdown();
+                                    }}
+                                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-between"
+                                >
+                                    <div className="flex items-center space-x-2">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <title>Country names</title>
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                                            />
+                                        </svg>
+                                        <span>Country names</span>
+                                    </div>
+                                    <span className="text-xs text-gray-500">
+                                        {showCountryNames ? "Shown" : "Hidden"}
                                     </span>
                                 </button>
 

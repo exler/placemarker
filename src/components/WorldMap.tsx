@@ -54,6 +54,10 @@ interface WorldMapProps {
      */
     homelandCountries?: string[];
     /**
+     * Whether to show country names on the map.
+     */
+    showCountryNames?: boolean;
+    /**
      * Color for selected countries fill.
      */
     selectedCountryColor?: string;
@@ -113,6 +117,7 @@ export const WorldMap: React.FC<WorldMapProps> = ({
     mapStyle = defaultProps.mapStyle,
     selectedCountries = [],
     homelandCountries = [],
+    showCountryNames = false,
     selectedCountryColor = defaultProps.selectedCountryColor,
     homelandCountryColor = defaultProps.homelandCountryColor,
     onMapLoad,
@@ -163,18 +168,35 @@ export const WorldMap: React.FC<WorldMapProps> = ({
             // Handle map load event
             map.current.on("load", () => {
                 if (!map.current) return;
+
                 try {
-                    // Remove all text layers to hide country names, city names, and labels
+                    // AIDEV-NOTE: Store original text layers for potential re-addition when showCountryNames is enabled
                     const style = map.current.getStyle();
+                    let countryNameLayers: mapboxgl.Layer[] = [];
+
                     if (style?.layers) {
-                        const textLayers = style.layers.filter(
+                        // Identify country name layers (these typically contain country names)
+                        countryNameLayers = style.layers.filter(
+                            (layer) =>
+                                layer.type === "symbol" &&
+                                layer.layout &&
+                                "text-field" in layer.layout &&
+                                (layer.id.includes("country") ||
+                                    layer.id.includes("place") ||
+                                    (layer.source &&
+                                        typeof layer.source === "string" &&
+                                        layer.source.includes("country"))),
+                        );
+
+                        // Remove all text and symbol layers initially
+                        const allTextLayers = style.layers.filter(
                             (layer) =>
                                 layer.type === "symbol" &&
                                 layer.layout &&
                                 ("text-field" in layer.layout || "icon-image" in layer.layout),
                         );
 
-                        for (const layer of textLayers) {
+                        for (const layer of allTextLayers) {
                             if (map.current?.getLayer(layer.id)) {
                                 map.current.removeLayer(layer.id);
                             }
@@ -236,6 +258,18 @@ export const WorldMap: React.FC<WorldMapProps> = ({
                         },
                     });
 
+                    // AIDEV-NOTE: Re-add country name layers if showCountryNames is enabled
+                    if (showCountryNames && countryNameLayers.length > 0) {
+                        for (const layer of countryNameLayers) {
+                            try {
+                                // Add the layer back on top of everything else
+                                map.current.addLayer(layer);
+                            } catch (error) {
+                                console.warn(`Failed to re-add country name layer ${layer.id}:`, error);
+                            }
+                        }
+                    }
+
                     setIsLoading(false);
                     setError(null);
                     onMapLoad?.(map.current);
@@ -284,6 +318,7 @@ export const WorldMap: React.FC<WorldMapProps> = ({
         borderWidth,
         selectedCountryColor,
         homelandCountryColor,
+        showCountryNames,
         onMapLoad,
         onMapError,
     ]);

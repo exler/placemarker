@@ -79,8 +79,8 @@ class PocketbaseService {
 
             return authUser;
         } catch (error) {
-            console.error("GitHub OAuth login failed:", error);
-            throw new Error("GitHub authentication failed. Please try again.");
+            console.error("OAuth2 login failed:", error);
+            throw new Error("OAuth2 authentication failed. Please try again.");
         }
     }
 

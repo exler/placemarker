@@ -7,6 +7,7 @@ export interface UserSettings {
         setAt: Date;
     };
     hasSeenWelcomeModal?: boolean; // AIDEV-NOTE: Track if user has seen the first-time welcome modal
+    showCountryNames?: boolean; // AIDEV-NOTE: Toggle for showing country names on the world map
     updatedAt: Date;
 }
 
@@ -107,6 +108,18 @@ class UserSettingsStorageService {
     async markWelcomeModalAsSeen(): Promise<void> {
         const settings = await this.getUserSettings();
         settings.hasSeenWelcomeModal = true;
+        await this.saveUserSettings(settings);
+    }
+
+    // AIDEV-NOTE: Public methods for managing country names visibility setting
+    async shouldShowCountryNames(): Promise<boolean> {
+        const settings = await this.getUserSettings();
+        return settings.showCountryNames ?? false; // Default to false (disabled)
+    }
+
+    async setShowCountryNames(show: boolean): Promise<void> {
+        const settings = await this.getUserSettings();
+        settings.showCountryNames = show;
         await this.saveUserSettings(settings);
     }
 }

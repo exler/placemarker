@@ -23,6 +23,7 @@ function Index() {
     const [homelandCountry, setHomelandCountry] = useState<Country | null>(null);
     const [isHomelandSelectorOpen, setIsHomelandSelectorOpen] = useState(false);
     const [isHelpModalOpen, setIsHelpModalOpen] = useState(false); // AIDEV-NOTE: Help modal state for first-time users
+    const [showCountryNames, setShowCountryNames] = useState(false); // AIDEV-NOTE: Show country names on map toggle
     const [isInitialized, setIsInitialized] = useState(false);
 
     const { isAuthenticated } = useAuth();
@@ -44,6 +45,10 @@ function Index() {
 
                 setInitialCountries(countries);
                 setSelectedCountries(stored.map((country) => country.alpha3));
+
+                // AIDEV-NOTE: Load country names setting from user settings
+                const shouldShowNames = await userSettingsStorage.shouldShowCountryNames();
+                setShowCountryNames(shouldShowNames);
 
                 setIsInitialized(true);
             } catch (error) {
@@ -318,6 +323,16 @@ function Index() {
         setIsHelpModalOpen(true);
     }, []);
 
+    // AIDEV-NOTE: Handler for toggling country names on the map
+    const handleToggleCountryNames = useCallback(async (show: boolean) => {
+        try {
+            await userSettingsStorage.setShowCountryNames(show);
+            setShowCountryNames(show);
+        } catch (error) {
+            console.error("Failed to save country names setting:", error);
+        }
+    }, []);
+
     // Arrays are compared by reference, so [0, 20] will create a new array each time the component renders
     // causing the useEffect in WorldMap to trigger and cause a blinking effect.
     const initialCenter = useMemo<[number, number]>(() => [10, 20], []);
@@ -353,7 +368,12 @@ function Index() {
             </div>
 
             {/* User Menu - Top Left */}
-            <UserMenu homelandCountry={homelandCountry} onHomelandButtonClick={() => setIsHomelandSelectorOpen(true)} />
+            <UserMenu
+                homelandCountry={homelandCountry}
+                onHomelandButtonClick={() => setIsHomelandSelectorOpen(true)}
+                showCountryNames={showCountryNames}
+                onToggleCountryNames={handleToggleCountryNames}
+            />
 
             {/* Country Selector Widget - Top Right */}
             <div className="absolute top-4 right-4 z-10">
@@ -393,6 +413,7 @@ function Index() {
                     mapStyle="mapbox://styles/mapbox/dark-v11"
                     selectedCountries={selectedCountries}
                     homelandCountries={homelandCountry ? [homelandCountry.alpha3] : undefined}
+                    showCountryNames={showCountryNames}
                     selectedCountryColor="#fbbf24"
                     homelandCountryColor="#3b82f6"
                     onMapLoad={handleMapLoad}
