@@ -1,3 +1,5 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import PlacemarkerLogo from "@/assets/placemarker_logo.png";
 import CountrySelector from "@/components/CountrySelector";
 import HelpModal from "@/components/HelpModal";
@@ -6,11 +8,9 @@ import UserMenu from "@/components/UserMenu";
 import WorldMap from "@/components/WorldMap";
 import { useAuth } from "@/lib/auth";
 import type { Country } from "@/lib/countries";
-import { type SelectedCountry, countryStorage } from "@/lib/countryStorage";
+import { countryStorage, type SelectedCountry } from "@/lib/countryStorage";
 import { pocketbaseService } from "@/lib/pocketbase";
 import { userSettingsStorage } from "@/lib/userSettingsStorage";
-import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
 
 export const Route = createFileRoute("/")({
     component: Index,
@@ -386,7 +386,7 @@ function Index() {
                     width="100%"
                     height="100%"
                     initialZoom={3}
-                    minZoom={3}
+                    minZoom={2}
                     initialCenter={initialCenter}
                     borderColor="#ffffff"
                     borderWidth={1.5}
